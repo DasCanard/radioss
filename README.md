@@ -29,6 +29,14 @@ Download the latest version for your operating system:
 **macOS**: `.dmg` disk image  
 **Linux**: `.AppImage`, `.deb`, or `.rpm`
 
+### Windows Package Manager (Winget)
+
+For Windows users, you can install Radioss directly using Winget:
+
+```bash
+winget install DasCanard.Radioss
+```
+
 ### Building from Source
 
 #### Prerequisites

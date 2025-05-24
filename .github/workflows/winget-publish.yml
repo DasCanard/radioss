@@ -1,0 +1,82 @@
+name: Publish to winget
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish to winget'
+        required: true
+        type: string
+
+jobs:
+  publish-to-winget:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from release
+        id: get_version
+        run: |
+          if ("${{ github.event_name }}" -eq "release") {
+            $version = "${{ github.event.release.tag_name }}" -replace '^v', ''
+            echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          } else {
+            $version = "${{ github.event.inputs.version }}" -replace '^v', ''
+            echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          }
+        shell: powershell
+
+      - name: Get Windows installer download URL
+        id: get_download_url
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $tag = "v$version"
+          
+          # Get release assets
+          $headers = @{
+            'Authorization' = 'Bearer ${{ secrets.GITHUB_TOKEN }}'
+            'Accept' = 'application/vnd.github.v3+json'
+          }
+          
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/DasCanard/radioss/releases/tags/$tag" -Headers $headers
+          
+          # Find Windows installer (.msi file)
+          $msiAsset = $release.assets | Where-Object { $_.name -like "*.msi" -or $_.name -like "*setup*.exe" }
+          
+          if ($msiAsset) {
+            $downloadUrl = $msiAsset.browser_download_url
+            echo "DOWNLOAD_URL=$downloadUrl" >> $env:GITHUB_OUTPUT
+            echo "INSTALLER_FILE=$($msiAsset.name)" >> $env:GITHUB_OUTPUT
+            
+            # Download file to calculate hash
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $msiAsset.name
+            $hash = (Get-FileHash -Path $msiAsset.name -Algorithm SHA256).Hash
+            echo "INSTALLER_HASH=$hash" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Error "No Windows installer found in release assets"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Publish to WinGet
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: DasCanard.Radioss
+          version: ${{ steps.get_version.outputs.VERSION }}
+          installers-regex: '\.msi$|setup.*\.exe$'  # Regex for Windows installers
+          token: ${{ secrets.WINGET_TOKEN }}
+          fork-user: DasCanard  # Your GitHub username
+
+      - name: Create PR to winget-pkgs (fallback)
+        if: failure()
+        run: |
+          Write-Host "Automated winget publishing failed. You can manually create a PR to:"
+          Write-Host "https://github.com/microsoft/winget-pkgs"
+          Write-Host ""
+          Write-Host "Version: ${{ steps.get_version.outputs.VERSION }}"
+          Write-Host "Download URL: ${{ steps.get_download_url.outputs.DOWNLOAD_URL }}"
+          Write-Host "SHA256 Hash: ${{ steps.get_download_url.outputs.INSTALLER_HASH }}"
+          Write-Host "Installer File: ${{ steps.get_download_url.outputs.INSTALLER_FILE }}"
+        shell: powershell 
