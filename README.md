@@ -77,8 +77,8 @@ npm run tauri build
 2. Enter the station details:
    - **Name**: Display name of the station
    - **Stream URL**: Direct URL to the audio stream
-   - **Country**: Country of origin (optional)
-   - **Language**: Station language (optional)
+   - **Country**: Country of origin (soon)
+   - **Language**: Station language (soon)
    - **Tags**: Music genres, separated by commas (optional)
 3. Click "Add Station"
 
