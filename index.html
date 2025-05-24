@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Radioss - A modern radio streaming app made with ❤ by richy" />
+    <meta name="author" content="richy (richy.sh)" />
+    <title>Radioss - Radio Streaming App</title>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    
+    <!-- Loading Screen -->
+    <div id="app-loading">
+      <div class="loading-container">
+        <img src="/favicon.svg" alt="Radioss Logo" class="loading-logo" />
+      </div>
+      <h1 class="loading-title">Radioss</h1>
+      <p class="loading-text">loading</p>
+    </div>
+
+    <style>
+      /* CSS Variables to match app design */
+      :root {
+        --primary-color: #6366f1;
+        --primary-hover: #5558e6;
+        --background: #0f172a;
+        --surface: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --radius: 12px;
+        --radius-sm: 8px;
+      }
+
+      #app-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--background);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        z-index: 9999;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      .loading-logo {
+        width: 72px;
+        height: 72px;
+        padding: 12px;
+        background: var(--primary-color);
+        border-radius: var(--radius);
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        animation: logo-glow 3s ease-in-out infinite;
+      }
+
+      @keyframes logo-glow {
+        0%, 100% {
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(99, 102, 241, 0.8);
+        }
+      }
+
+      .loading-title {
+        margin: 0 0 12px 0;
+        font-size: 32px;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: -0.5px;
+        color: var(--text-primary);
+      }
+
+      .loading-text {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+        text-align: center;
+        font-weight: 500;
+        text-transform: lowercase;
+      }
+
+      .app-loaded #app-loading {
+        display: none;
+      }
+
+      #root:empty {
+        display: none;
+      }
+    </style>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

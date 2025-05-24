@@ -1,0 +1,101 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' 
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - if: matrix.platform == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm install
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'radioss v__VERSION__'
+          releaseBody: 'See the assets to download this version and install.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+
+  update-latest-json:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - uses: robinraju/release-downloader@v1.11
+        with:
+          tag: v${{ steps.version.outputs.VERSION }}
+          filename: "*"
+          out-file-path: "assets"
+      - name: Generate latest.json
+        run: |
+          DARWIN_X64_SIG=$(find assets/ -name "*x64*.dmg.sig" -o -name "*x86_64*.dmg.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          DARWIN_AARCH64_SIG=$(find assets/ -name "*aarch64*.dmg.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          LINUX_X64_SIG=$(find assets/ -name "*amd64*.AppImage*.sig" -o -name "*x86_64*.AppImage*.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          WINDOWS_X64_SIG=$(find assets/ -name "*x64*setup*.sig" -o -name "*x86_64*setup*.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          DARWIN_X64_URL=$(find assets/ -name "*x64*.dmg" -o -name "*x86_64*.dmg" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
+          DARWIN_AARCH64_URL=$(find assets/ -name "*aarch64*.dmg" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
+          LINUX_X64_URL=$(find assets/ -name "*amd64*.AppImage" -o -name "*x86_64*.AppImage" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
+          WINDOWS_X64_URL=$(find assets/ -name "*x64*setup*.zip" -o -name "*x86_64*setup*.zip" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
+          cat > latest.json << EOF
+          {
+            "version": "${{ steps.version.outputs.VERSION }}",
+            "notes": "New version available",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "darwin-x86_64": {
+                "signature": "${DARWIN_X64_SIG}",
+                "url": "${DARWIN_X64_URL}"
+              },
+              "darwin-aarch64": {
+                "signature": "${DARWIN_AARCH64_SIG}",
+                "url": "${DARWIN_AARCH64_URL}"
+              },
+              "linux-x86_64": {
+                "signature": "${LINUX_X64_SIG}",
+                "url": "${LINUX_X64_URL}"
+              },
+              "windows-x86_64": {
+                "signature": "${WINDOWS_X64_SIG}",
+                "url": "${WINDOWS_X64_URL}"
+              }
+            }
+          }
+          EOF
+          cat latest.json
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: latest.json
+          tag_name: v${{ steps.version.outputs.VERSION }} 
