@@ -2,6 +2,8 @@
 
 A modern, cross-platform internet radio player built with Tauri, React, and TypeScript.
 
+![image](https://github.com/user-attachments/assets/54912054-d580-4907-8c6b-b64ae9141e7e)
+
 ## 🌟 Features
 
 - **🎵 Radio Player**: Stream internet radio stations in high quality
