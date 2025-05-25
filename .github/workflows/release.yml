@@ -63,12 +63,12 @@ jobs:
         run: |
           DARWIN_X64_SIG=$(find assets/ -name "*x64*.dmg.sig" -o -name "*x86_64*.dmg.sig" | head -1 | xargs cat 2>/dev/null || echo "")
           DARWIN_AARCH64_SIG=$(find assets/ -name "*aarch64*.dmg.sig" | head -1 | xargs cat 2>/dev/null || echo "")
-          LINUX_X64_SIG=$(find assets/ -name "*amd64*.AppImage*.sig" -o -name "*x86_64*.AppImage*.sig" | head -1 | xargs cat 2>/dev/null || echo "")
-          WINDOWS_X64_SIG=$(find assets/ -name "*x64*setup*.sig" -o -name "*x86_64*setup*.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          LINUX_X64_SIG=$(find assets/ -name "*amd64*.AppImage.sig" -o -name "*x86_64*.AppImage.sig" | head -1 | xargs cat 2>/dev/null || echo "")
+          WINDOWS_X64_SIG=$(find assets/ -name "*x64*setup*.exe.sig" -o -name "*x86_64*setup*.exe.sig" | head -1 | xargs cat 2>/dev/null || echo "")
           DARWIN_X64_URL=$(find assets/ -name "*x64*.dmg" -o -name "*x86_64*.dmg" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
           DARWIN_AARCH64_URL=$(find assets/ -name "*aarch64*.dmg" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
           LINUX_X64_URL=$(find assets/ -name "*amd64*.AppImage" -o -name "*x86_64*.AppImage" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
-          WINDOWS_X64_URL=$(find assets/ -name "*x64*setup*.zip" -o -name "*x86_64*setup*.zip" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
+          WINDOWS_X64_URL=$(find assets/ -name "*x64*setup*.exe" -o -name "*x86_64*setup*.exe" | head -1 | sed 's|assets/|https://github.com/DasCanard/radioss/releases/download/v${{ steps.version.outputs.VERSION }}/|')
           cat > latest.json << EOF
           {
             "version": "${{ steps.version.outputs.VERSION }}",
