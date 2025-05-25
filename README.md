@@ -2,7 +2,7 @@
 
 A modern, cross-platform internet radio player built with Tauri, React, and TypeScript.
 
-![image](https://github.com/user-attachments/assets/54912054-d580-4907-8c6b-b64ae9141e7e)
+![radios0 2 0](https://github.com/user-attachments/assets/6bd7f0ae-9420-4d29-9438-914312f7365d)
 
 ## 🌟 Features
 
