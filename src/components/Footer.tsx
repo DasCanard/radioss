@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
+import packageInfo from '../../package.json';
 
 export const Footer: React.FC = () => {
   return (
@@ -16,6 +17,9 @@ export const Footer: React.FC = () => {
             richy
           </a>
         </p>
+        <span className="version-info">
+          v{packageInfo.version}
+        </span>
       </div>
     </footer>
   );
