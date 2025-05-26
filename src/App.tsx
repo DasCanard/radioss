@@ -168,6 +168,15 @@ function App() {
     setGlobalSearchResults([]);
   };
 
+  const handleHomeClick = () => {
+    setView('browse');
+    setBrowseView('countries');
+    setSearchQuery('');
+    setSelectedCountry(null);
+    setApiStations([]);
+    setGlobalSearchResults([]);
+  };
+
   const handleStationSelect = (station: RadioStation) => {
     if (currentStation?.id === station.id) {
       setIsPlaying(!isPlaying);
@@ -417,7 +426,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="header-brand">
+        <div className="header-brand" onClick={handleHomeClick}>
           <div className="logo-wrapper">
             <img src="/favicon.svg" alt="Radioss Logo" className="logo-icon" />
           </div>

@@ -17,7 +17,8 @@ body {
 
 /* Header */
 .app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-.header-brand { display: flex; align-items: center; gap: 0.75rem; }
+.header-brand { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: var(--transition); }
+.header-brand:hover { opacity: 0.8; }
 .header-brand h1 { font-size: 1.5rem; font-weight: 700; }
 .logo-wrapper { width: 48px; height: 48px; background: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; animation: logo-glow 3s ease-in-out infinite; }
 .logo-icon { width: 32px; height: 32px; animation: logo-pulse 2s ease-in-out infinite; }
