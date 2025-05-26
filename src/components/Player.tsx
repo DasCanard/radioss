@@ -90,7 +90,7 @@ export const Player: React.FC<PlayerProps> = ({
               )}
             </div>
             <div className="station-details">
-              <h3>{currentStation.name}</h3>
+              <h3 className="text-clamp-2" title={currentStation.name}>{currentStation.name}</h3>
               {currentStation.tags && (
                 <p>{currentStation.tags.slice(0, 3).join(' • ')}</p>
               )}

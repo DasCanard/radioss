@@ -73,7 +73,7 @@ export function CustomStationsSection({
                 )}
               </div>
               <div className="station-info">
-                <h4>{station.name}</h4>
+                <h4 className="text-clamp-2" title={station.name}>{station.name}</h4>
                 <div className="station-meta">
                   {station.country && <span>{station.country}</span>}
                   {station.bitrate && <span>{station.bitrate} kbps</span>}

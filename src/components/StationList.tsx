@@ -51,7 +51,7 @@ export const StationList: React.FC<StationListProps> = ({
               </div>
               
               <div className="station-info">
-                <h4>{station.name}</h4>
+                <h4 className="text-clamp-2" title={station.name}>{station.name}</h4>
                 <div className="station-meta">
                   {station.country && <span className="country">{station.country}</span>}
                   {station.tags && station.tags.length > 0 && (
