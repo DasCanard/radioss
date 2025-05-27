@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { Download, X, RefreshCw } from 'lucide-react';
+import { Download, X, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface UpdateInfo {
   available: boolean;
@@ -16,10 +16,17 @@ export const UpdateNotification: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     checkForUpdates();
   }, []);
+
+  useEffect(() => {
+    if (updateInfo?.available) {
+      setTimeout(() => setIsVisible(true), 100);
+    }
+  }, [updateInfo]);
 
   const checkForUpdates = async () => {
     try {
@@ -69,9 +76,14 @@ export const UpdateNotification: React.FC = () => {
 
       await relaunch();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update fehlgeschlagen');
+      setError(err instanceof Error ? err.message : 'Update failed');
       setDownloading(false);
     }
+  };
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => setShowNotification(false), 300);
   };
 
   if (!updateInfo?.available || !showNotification) {
@@ -79,64 +91,70 @@ export const UpdateNotification: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center">
-          <RefreshCw className="w-5 h-5 text-blue-500 mr-2" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            Update verfügbar
-          </h3>
+    <div className={`update-notification ${isVisible ? 'visible' : ''}`}>
+      <div className="update-card">
+        <div className="update-header">
+          <div className="update-icon">
+            <RefreshCw size={20} />
+          </div>
+          <div className="update-content">
+            <h3 className="update-title">Update available</h3>
+            <p className="update-version">
+              Version {updateInfo.version} is available
+            </p>
+          </div>
         </div>
-        <button
-          onClick={() => setShowNotification(false)}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-        >
-          <X className="w-4 h-4" />
-        </button>
+
+        {updateInfo.body && (
+          <a
+            href={`https://github.com/DasCanard/radioss/releases/tag/v${updateInfo.version}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="release-notes-btn"
+          >
+            <ExternalLink size={14} />
+            View release notes
+          </a>
+        )}
+
+        {error && (
+          <div className="update-error">
+            {error}
+          </div>
+        )}
+
+        <div className="update-actions">
+          {downloading ? (
+            <div className="update-progress">
+              <div className="progress-info">
+                <span>Downloading... {downloadProgress}%</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill"
+                  style={{ width: `${downloadProgress}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={downloadAndInstall}
+                className="update-btn primary"
+              >
+                <Download size={16} />
+                Update
+              </button>
+              <button
+                onClick={handleClose}
+                className="update-btn secondary"
+              >
+                Later
+              </button>
+            </>
+          )}
+        </div>
       </div>
-      
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-        Version {updateInfo.version} ist verfügbar (aktuelle Version: {updateInfo.currentVersion})
-      </p>
-
-      {updateInfo.body && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-3 max-h-32 overflow-y-auto">
-          {updateInfo.body}
-        </div>
-      )}
-
-      {error && (
-        <div className="text-sm text-red-600 dark:text-red-400 mb-3">
-          Fehler: {error}
-        </div>
-      )}
-
-      {downloading ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-300">
-              Download läuft...
-            </span>
-            <span className="text-gray-900 dark:text-white font-medium">
-              {downloadProgress}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${downloadProgress}%` }}
-            />
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={downloadAndInstall}
-          className="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Jetzt aktualisieren
-        </button>
-      )}
     </div>
   );
 }; 
