@@ -15,6 +15,7 @@ A modern, cross-platform internet radio player built with Tauri, React, and Type
 - **🖥️ Native Desktop App**: Runs natively on Windows, macOS, and Linux
 - **📱 Modern UI**: Sleek, responsive design with dark theme
 - **🔄 Auto-Updates**: Automatic updates for new features
+- **🎮 Discord RPC**: Show what you're listening to in Discord
 
 
 ## 🚀 Installation
@@ -29,14 +30,6 @@ Download the latest version for your operating system:
 **macOS**: `.dmg` disk image  
 **Linux**: `.AppImage`, `.deb`, or `.rpm`
 
-### Windows Package Manager (Winget) *soon (waiting for approval)*
-
-
-For Windows users, you can install Radioss directly using Winget:
-
-```bash
-winget install DasCanard.Radioss
-```
 
 ### Building from Source
 

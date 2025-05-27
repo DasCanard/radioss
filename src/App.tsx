@@ -1,15 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Library, Plus, Home, ArrowLeft, Globe, Radio, Star, StarOff } from 'lucide-react';
+import { Library, Plus, Home, ArrowLeft, Globe, Radio, Star, StarOff, Settings } from 'lucide-react';
 import './App.css';
 import { RadioStation } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useLoadingScreen } from './hooks/useLoadingScreen';
+import { useDiscordRPC } from './hooks/useDiscordRPC';
 import { Player } from './components/Player';
 import { StationList } from './components/StationList';
 import { SearchBar } from './components/SearchBar';
 import { AddStationModal } from './components/AddStationModal';
 import { Footer } from './components/Footer';
 import { UpdateNotification } from './components/UpdateNotification';
+import { SettingsModal } from './components/SettingsModal';
 import { CountryList } from './components/CountryList';
 import { CustomStationsSection } from './components/CustomStationsSection';
 import { Breadcrumb } from './components/Breadcrumb';
@@ -42,8 +44,12 @@ function App() {
   
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  const [discordRPCEnabled, setDiscordRPCEnabled] = useLocalStorage<boolean>('discordRPCEnabled', true);
 
   const api = useMemo(() => new RadioBrowserAPI(), []);
+  const { updateActivity, clearActivity } = useDiscordRPC(discordRPCEnabled, setDiscordRPCEnabled);
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -88,6 +94,15 @@ function App() {
     const timeoutId = setTimeout(performGlobalSearch, 300);
     return () => clearTimeout(timeoutId);
   }, [api, browseView, searchQuery]);
+
+  // Discord RPC Integration
+  useEffect(() => {
+    if (currentStation && isPlaying) {
+      updateActivity(currentStation.name, currentStation.tags);
+    } else {
+      clearActivity();
+    }
+  }, [currentStation, isPlaying, updateActivity, clearActivity]);
 
   const allStations = useMemo(() => {
     if (browseView === 'countries') {
@@ -432,22 +447,31 @@ function App() {
           </div>
           <h1>Radioss</h1>
         </div>
-        <nav className="nav-tabs">
+        <div className="header-right">
+          <nav className="nav-tabs">
+            <button 
+              className={`nav-tab ${view === 'browse' ? 'active' : ''}`}
+              onClick={() => setView('browse')}
+            >
+              <Home size={20} />
+              Browse
+            </button>
+            <button 
+              className={`nav-tab ${view === 'library' ? 'active' : ''}`}
+              onClick={() => setView('library')}
+            >
+              <Library size={20} />
+              Library ({libraryStations.length})
+            </button>
+          </nav>
           <button 
-            className={`nav-tab ${view === 'browse' ? 'active' : ''}`}
-            onClick={() => setView('browse')}
+            className="settings-btn"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Settings"
           >
-            <Home size={20} />
-            Browse
+            <Settings size={20} />
           </button>
-          <button 
-            className={`nav-tab ${view === 'library' ? 'active' : ''}`}
-            onClick={() => setView('library')}
-          >
-            <Library size={20} />
-            Library ({libraryStations.length})
-          </button>
-        </nav>
+        </div>
       </header>
 
       <main className="app-main">
@@ -501,6 +525,13 @@ function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddCustomStation}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        discordRPCEnabled={discordRPCEnabled}
+        onDiscordRPCToggle={setDiscordRPCEnabled}
       />
 
       <UpdateNotification />
