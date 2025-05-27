@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { Download, X, RefreshCw, ExternalLink } from 'lucide-react';
+import { Download, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface UpdateInfo {
   available: boolean;

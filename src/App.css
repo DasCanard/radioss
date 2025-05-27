@@ -29,6 +29,7 @@ body {
 .header-brand { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: var(--transition); }
 .header-brand:hover { opacity: 0.8; }
 .header-brand h1 { font-size: 1.5rem; font-weight: 700; }
+.header-right { display: flex; align-items: center; gap: 1rem; }
 .logo-wrapper { width: 48px; height: 48px; background: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; animation: logo-glow 3s ease-in-out infinite; }
 .logo-icon { width: 32px; height: 32px; animation: logo-pulse 2s ease-in-out infinite; }
 @keyframes logo-glow { 0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); } 50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.8); } }
@@ -39,6 +40,10 @@ body {
 .nav-tab { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: transparent; border: none; color: var(--text-sec); border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); font-size: 0.875rem; font-weight: 500; }
 .nav-tab:hover { background: var(--surface-hover); color: var(--text); }
 .nav-tab.active { background: var(--primary); color: white; }
+
+/* Settings Button */
+.settings-btn { background: none; border: none; color: var(--text-sec); cursor: pointer; padding: 0.5rem; border-radius: var(--radius-sm); transition: var(--transition); display: flex; align-items: center; justify-content: center; }
+.settings-btn:hover { background: var(--surface-hover); color: var(--text); }
 
 /* Layout */
 .app-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -118,8 +123,26 @@ body {
 .modal-content { background: var(--surface); border-radius: var(--radius); padding: 2rem; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 .modal-header h2 { font-size: 1.25rem; font-weight: 600; }
-.close-btn { background: none; border: none; color: var(--text-sec); cursor: pointer; padding: 0.5rem; border-radius: var(--radius-sm); transition: var(--transition); }
-.close-btn:hover { background: var(--surface-hover); color: var(--text); }
+.close-btn, .modal-close { background: none; border: none; color: var(--text-sec); cursor: pointer; padding: 0.5rem; border-radius: var(--radius-sm); transition: var(--transition); }
+.close-btn:hover, .modal-close:hover { background: var(--surface-hover); color: var(--text); }
+
+/* Settings Modal */
+.settings-modal { max-width: 400px; }
+.settings-section { margin-bottom: 2rem; }
+.settings-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.setting-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
+.setting-info { flex: 1; }
+.setting-info label { font-size: 0.875rem; font-weight: 500; color: var(--text); margin-bottom: 0.25rem; display: block; cursor: pointer; }
+.setting-description { font-size: 0.75rem; color: var(--text-sec); margin: 0; }
+.setting-control { flex-shrink: 0; }
+
+/* Toggle Switch */
+.toggle-switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--border); transition: var(--transition); border-radius: 24px; }
+.toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; transition: var(--transition); border-radius: 50%; }
+input:checked + .toggle-slider { background: var(--primary); }
+input:checked + .toggle-slider:before { transform: translateX(24px); }
 
 /* Form */
 .form-group { margin-bottom: 1.25rem; }
