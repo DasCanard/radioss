@@ -23,16 +23,31 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi", "dmg", "appimage", "deb"],
+    "targets": ["nsis", "msi", "dmg", "appimage", "deb", "rpm"],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/radioss.png",
       "icons/radioss.ico"
     ],
+    "category": "AudioVideo",
+    "shortDescription": "A modern internet radio player",
+    "longDescription": "A modern, cross-platform internet radio player built with Tauri, React, and TypeScript. Features include streaming internet radio stations, favorites management, custom stations, Discord Rich Presence integration, and a modern dark theme UI.",
+    "license": "MIT",
+    "homepage": "https://github.com/DasCanard/radioss",
+    "resources": [],
+    "copyright": "Copyright (c) 2025 richy",
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libssl3"]
+      },
+      "rpm": {
+        "depends": ["webkit2gtk4.1", "openssl"]
+      }
     }
   },
   "plugins": {
