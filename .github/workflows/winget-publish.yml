@@ -1,0 +1,63 @@
+name: Publish to winget
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish to winget'
+        required: true
+        type: string
+
+jobs:
+  publish-to-winget:
+    runs-on: windows-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest release tag
+        if: github.event_name == 'workflow_run'
+        id: get-latest-release
+        run: |
+          "tag=$((gh api repos/${{ github.repository }}/releases/latest | ConvertFrom-Json).tag_name)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug release info
+        if: github.event_name == 'workflow_run'
+        run: |
+          Write-Host "Latest release tag: ${{ steps.get-latest-release.outputs.tag }}"
+          Write-Host "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+        shell: powershell
+
+      - name: Publish to WinGet (from workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: DasCanard.Radioss
+          release-tag: ${{ steps.get-latest-release.outputs.tag }}
+          installers-regex: 'setup.*\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          fork-user: DasCanard
+
+      - name: Debug manual input
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          Write-Host "Manual version input: ${{ github.event.inputs.version }}"
+          Write-Host "Will look for release with tag: ${{ github.event.inputs.version }}"
+        shell: powershell
+
+      - name: Publish to WinGet (manual version)
+        if: github.event_name == 'workflow_dispatch'
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: DasCanard.Radioss
+          release-tag: ${{ github.event.inputs.version }}
+          installers-regex: 'setup.*\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          fork-user: DasCanard
