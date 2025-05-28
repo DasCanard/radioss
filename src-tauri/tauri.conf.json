@@ -23,7 +23,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi", "dmg", "appimage", "deb"],
+    "targets": ["nsis", "msi", "dmg", "appimage", "deb", "rpm"],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/radioss.png",
