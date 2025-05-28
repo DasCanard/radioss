@@ -41,7 +41,7 @@ jobs:
         with:
           identifier: DasCanard.Radioss
           release-tag: ${{ steps.get-latest-release.outputs.tag }}
-          installers-regex: 'setup.*\.exe$'
+          installers-regex: '.*\.msi$'
           token: ${{ secrets.WINGET_TOKEN }}
           fork-user: DasCanard
 
@@ -58,6 +58,6 @@ jobs:
         with:
           identifier: DasCanard.Radioss
           release-tag: ${{ github.event.inputs.version }}
-          installers-regex: 'setup.*\.exe$'
+          installers-regex: '.*\.msi$'
           token: ${{ secrets.WINGET_TOKEN }}
           fork-user: DasCanard
