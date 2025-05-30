@@ -159,6 +159,42 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 .custom-stations-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .search-results-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 
+.search-results-count, .stations-count {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-sec);
+  margin-left: 0.5rem;
+}
+
+.search-results-count {
+  color: var(--primary);
+}
+
+.load-more-section {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.load-more-btn {
+  min-width: 200px;
+  padding: 0.875rem 1.5rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.load-more-btn .spinner {
+  margin-right: 0.5rem;
+}
+
 .country-card, .custom-station-card, .search-result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; cursor: pointer; transition: var(--transition); position: relative; }
 .country-card:hover, .search-result-card:hover { background: var(--surface-hover); border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
 .custom-station-card:hover { background: var(--surface-hover); border-color: var(--primary); transform: translateX(4px); }
@@ -292,8 +328,6 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
   color: var(--text-sec);
   margin: 0;
 }
-
-
 
 .release-notes-btn {
   display: inline-flex;

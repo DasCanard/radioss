@@ -33,9 +33,15 @@ function App() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [apiStations, setApiStations] = useState<RadioStation[]>([]);
   const [globalSearchResults, setGlobalSearchResults] = useState<RadioStation[]>([]);
+  const [countrySearchResults, setCountrySearchResults] = useState<RadioStation[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
   const [isLoadingStations, setIsLoadingStations] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSearchingInCountry, setIsSearchingInCountry] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreStations, setHasMoreStations] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalStationsCount, setTotalStationsCount] = useState(0);
   
   const [customStations, setCustomStations] = useLocalStorage<RadioStation[]>('customStations', []);
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
@@ -77,7 +83,7 @@ function App() {
       if (browseView === 'countries' && searchQuery.trim().length > 2) {
         setIsSearching(true);
         try {
-          const searchResults = await api.globalSearch(searchQuery, 50);
+          const searchResults = await api.globalSearch(searchQuery, 500);
           const convertedResults = convertRadioBrowserStations(searchResults);
           setGlobalSearchResults(convertedResults);
         } catch (error) {
@@ -95,6 +101,34 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [api, browseView, searchQuery]);
 
+  // Search within selected country
+  useEffect(() => {
+    const performCountrySearch = async () => {
+      if (browseView === 'stations' && selectedCountry && searchQuery.trim().length > 2) {
+        setIsSearchingInCountry(true);
+        try {
+          const searchResults = await api.searchStations({
+            country: selectedCountry.name,
+            name: searchQuery,
+            limit: 1000
+          });
+          const convertedResults = convertRadioBrowserStations(searchResults);
+          setCountrySearchResults(convertedResults);
+        } catch (error) {
+          console.error('Country search failed:', error);
+          setCountrySearchResults([]);
+        } finally {
+          setIsSearchingInCountry(false);
+        }
+      } else {
+        setCountrySearchResults([]);
+      }
+    };
+
+    const timeoutId = setTimeout(performCountrySearch, 300);
+    return () => clearTimeout(timeoutId);
+  }, [api, browseView, selectedCountry, searchQuery]);
+
   // Discord RPC Integration
   useEffect(() => {
     if (currentStation && isPlaying) {
@@ -108,8 +142,12 @@ function App() {
     if (browseView === 'countries') {
       return [...customStations, ...globalSearchResults];
     }
+    // When in a country and searching, prioritize search results
+    if (browseView === 'stations' && searchQuery.trim().length > 2 && countrySearchResults.length > 0) {
+      return [...countrySearchResults];
+    }
     return [...apiStations];
-  }, [customStations, apiStations, browseView, globalSearchResults]);
+  }, [customStations, apiStations, browseView, globalSearchResults, countrySearchResults, searchQuery]);
 
   const filteredStations = useMemo(() => {
     const query = searchQuery.toLowerCase();
@@ -162,14 +200,21 @@ function App() {
     setIsLoadingStations(true);
     setSearchQuery('');
     setGlobalSearchResults([]);
+    setCountrySearchResults([]);
+    setCurrentPage(1);
+    setHasMoreStations(false);
     
     try {
-      const stationsData = await api.getStationsByCountry(country.name, 500);
+      const stationsData = await api.getStationsByCountry(country.name, 1000);
       const convertedStations = convertRadioBrowserStations(stationsData);
       setApiStations(convertedStations);
+      setTotalStationsCount(country.stationcount);
+      setHasMoreStations(stationsData.length === 1000 && country.stationcount > 1000);
     } catch (error) {
       console.error('Failed to load stations for country:', error);
       setApiStations([]);
+      setTotalStationsCount(0);
+      setHasMoreStations(false);
     } finally {
       setIsLoadingStations(false);
     }
@@ -181,6 +226,10 @@ function App() {
     setApiStations([]);
     setSearchQuery('');
     setGlobalSearchResults([]);
+    setCountrySearchResults([]);
+    setCurrentPage(1);
+    setHasMoreStations(false);
+    setTotalStationsCount(0);
   };
 
   const handleHomeClick = () => {
@@ -190,6 +239,10 @@ function App() {
     setSelectedCountry(null);
     setApiStations([]);
     setGlobalSearchResults([]);
+    setCountrySearchResults([]);
+    setCurrentPage(1);
+    setHasMoreStations(false);
+    setTotalStationsCount(0);
   };
 
   const handleStationSelect = (station: RadioStation) => {
@@ -404,6 +457,12 @@ function App() {
         <div className="browse-header">
           <h2 className="browse-title">
             Radio Stations in {selectedCountry?.name}
+            {searchQuery.trim().length > 2 && countrySearchResults.length > 0 && (
+              <span className="search-results-count"> - {countrySearchResults.length} search results</span>
+            )}
+            {!searchQuery.trim() && apiStations.length > 0 && (
+              <span className="stations-count"> - {apiStations.length}{totalStationsCount > apiStations.length ? ` of ${totalStationsCount}` : ''} stations</span>
+            )}
           </h2>
           <div className="browse-actions">
             <button className="back-btn" onClick={handleBackToCountries}>
@@ -412,21 +471,43 @@ function App() {
             </button>
           </div>
         </div>
-        {isLoadingStations ? (
+        {isLoadingStations || isSearchingInCountry ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading stations...</p>
+            <p>{isSearchingInCountry ? 'Searching stations...' : 'Loading stations...'}</p>
           </div>
         ) : (
-          <StationList
-            stations={displayedStations}
-            currentStation={currentStation}
-            isPlaying={isPlaying}
-            favorites={favorites}
-            onStationSelect={handleStationSelect}
-            onToggleFavorite={handleToggleFavorite}
-            onDeleteCustomStation={handleDeleteCustomStation}
-          />
+          <>
+            <StationList
+              stations={displayedStations}
+              currentStation={currentStation}
+              isPlaying={isPlaying}
+              favorites={favorites}
+              onStationSelect={handleStationSelect}
+              onToggleFavorite={handleToggleFavorite}
+              onDeleteCustomStation={handleDeleteCustomStation}
+            />
+            {hasMoreStations && !searchQuery.trim() && (
+              <div className="load-more-section">
+                <button 
+                  className="btn-secondary load-more-btn" 
+                  onClick={loadMoreStations}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="spinner"></div>
+                      Loading more stations...
+                    </>
+                  ) : (
+                    <>
+                      Load More Stations ({totalStationsCount - apiStations.length} remaining)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </>
     );
@@ -436,6 +517,29 @@ function App() {
     if (view === 'library') return 'Search your library...';
     if (browseView === 'countries') return 'Search countries and radio stations...';
     return `Search stations in ${selectedCountry?.name || 'country'}...`;
+  };
+
+  const loadMoreStations = async () => {
+    if (!selectedCountry || isLoadingMore || !hasMoreStations) return;
+    
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+    const offset = currentPage * 1000;
+    
+    try {
+      // For Radio Browser API, we need to make a new request with higher limit
+      const totalToLoad = Math.min((nextPage * 1000), totalStationsCount);
+      const stationsData = await api.getStationsByCountry(selectedCountry.name, totalToLoad);
+      const convertedStations = convertRadioBrowserStations(stationsData);
+      
+      setApiStations(convertedStations);
+      setCurrentPage(nextPage);
+      setHasMoreStations(convertedStations.length < totalStationsCount);
+    } catch (error) {
+      console.error('Failed to load more stations:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   return (
