@@ -6,13 +6,17 @@ interface SettingsModalProps {
   onClose: () => void;
   discordRPCEnabled: boolean;
   onDiscordRPCToggle: (enabled: boolean) => void;
+  minimizeToTrayEnabled: boolean;
+  onMinimizeToTrayToggle: (enabled: boolean) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   discordRPCEnabled,
-  onDiscordRPCToggle
+  onDiscordRPCToggle,
+  minimizeToTrayEnabled,
+  onMinimizeToTrayToggle
 }) => {
   if (!isOpen) return null;
 
@@ -27,6 +31,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="modal-body">
+          <div className="settings-section">
+            <h3>Application</h3>
+            <div className="setting-item">
+              <div className="setting-info">
+                <label htmlFor="minimize-to-tray">Minimize to Tray</label>
+                <p className="setting-description">
+                  Hide the window to system tray instead of closing the application
+                </p>
+              </div>
+              <div className="setting-control">
+                <label className="toggle-switch">
+                  <input
+                    id="minimize-to-tray"
+                    type="checkbox"
+                    checked={minimizeToTrayEnabled}
+                    onChange={(e) => onMinimizeToTrayToggle(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div className="settings-section">
             <h3>Discord Integration</h3>
             <div className="setting-item">

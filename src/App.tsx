@@ -5,6 +5,7 @@ import { RadioStation } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useLoadingScreen } from './hooks/useLoadingScreen';
 import { useDiscordRPC } from './hooks/useDiscordRPC';
+import { useMinimizeToTray } from './hooks/useMinimizeToTray';
 import { Player } from './components/Player';
 import { StationList } from './components/StationList';
 import { SearchBar } from './components/SearchBar';
@@ -53,9 +54,12 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const [discordRPCEnabled, setDiscordRPCEnabled] = useLocalStorage<boolean>('discordRPCEnabled', true);
+  const [minimizeToTrayEnabled, setMinimizeToTrayEnabled] = useLocalStorage<boolean>('minimizeToTrayEnabled', false);
 
   const api = useMemo(() => new RadioBrowserAPI(), []);
   const { updateActivity, clearActivity } = useDiscordRPC(discordRPCEnabled, setDiscordRPCEnabled);
+  
+  useMinimizeToTray(minimizeToTrayEnabled);
 
   useEffect(() => {
     const loadCountries = async () => {
@@ -524,7 +528,6 @@ function App() {
     
     setIsLoadingMore(true);
     const nextPage = currentPage + 1;
-    const offset = currentPage * 1000;
     
     try {
       // For Radio Browser API, we need to make a new request with higher limit
@@ -636,6 +639,8 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         discordRPCEnabled={discordRPCEnabled}
         onDiscordRPCToggle={setDiscordRPCEnabled}
+        minimizeToTrayEnabled={minimizeToTrayEnabled}
+        onMinimizeToTrayToggle={setMinimizeToTrayEnabled}
       />
 
       <UpdateNotification />
