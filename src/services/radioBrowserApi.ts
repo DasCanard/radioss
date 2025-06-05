@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://de1.api.radio-browser.info/json';
+const API_BASE_URL = 'https://stations.radioss.app/json';
 const USER_AGENT = 'Radioss/1.0';
 
 export interface Country {
