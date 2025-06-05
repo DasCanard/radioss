@@ -1,5 +1,4 @@
 const API_BASE_URL = 'https://stations.radioss.app/json';
-const USER_AGENT = 'Radioss/1.0';
 
 export interface Country {
   name: string;
@@ -42,11 +41,9 @@ export interface Tag {
 
 export class RadioBrowserAPI {
   private baseUrl: string;
-  private userAgent: string;
 
   constructor() {
     this.baseUrl = API_BASE_URL;
-    this.userAgent = USER_AGENT;
   }
 
   private async fetchData(url: string): Promise<Response> {
