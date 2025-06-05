@@ -49,17 +49,17 @@ export class RadioBrowserAPI {
     this.userAgent = USER_AGENT;
   }
 
-  private async fetchWithUserAgent(url: string): Promise<Response> {
-    return fetch(url, {
-      headers: {
-        'User-Agent': this.userAgent,
-      },
-    });
+  private async fetchData(url: string): Promise<Response> {
+    // Add API protection code parameter
+    const separator = url.includes('?') ? '&' : '?';
+    const urlWithCode = `${url}${separator}code=radioss`;
+    
+    return fetch(urlWithCode);
   }
 
   async getCountries(): Promise<Country[]> {
     try {
-      const response = await this.fetchWithUserAgent(`${this.baseUrl}/countries`);
+      const response = await this.fetchData(`${this.baseUrl}/countries`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -73,7 +73,7 @@ export class RadioBrowserAPI {
   async getStationsByCountry(countryName: string, limit: number = 100): Promise<RadioBrowserStation[]> {
     try {
       const encodedCountry = encodeURIComponent(countryName);
-      const response = await this.fetchWithUserAgent(
+      const response = await this.fetchData(
         `${this.baseUrl}/stations/bycountryexact/${encodedCountry}?limit=${limit}&hidebroken=true`
       );
       if (!response.ok) {
@@ -103,7 +103,7 @@ export class RadioBrowserAPI {
       if (params.offset) searchParams.set('offset', params.offset.toString());
       searchParams.set('hidebroken', 'true');
 
-      const response = await this.fetchWithUserAgent(
+      const response = await this.fetchData(
         `${this.baseUrl}/stations/search?${searchParams.toString()}`
       );
       if (!response.ok) {
@@ -118,7 +118,7 @@ export class RadioBrowserAPI {
 
   async getAllTags(): Promise<Tag[]> {
     try {
-      const response = await this.fetchWithUserAgent(`${this.baseUrl}/tags?limit=500`);
+      const response = await this.fetchData(`${this.baseUrl}/tags?limit=500`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -136,7 +136,7 @@ export class RadioBrowserAPI {
       searchParams.set('limit', limit.toString());
       searchParams.set('hidebroken', 'true');
 
-      const response = await this.fetchWithUserAgent(
+      const response = await this.fetchData(
         `${this.baseUrl}/stations/search?${searchParams.toString()}`
       );
       if (!response.ok) {
@@ -151,7 +151,7 @@ export class RadioBrowserAPI {
 
   async recordClick(stationUuid: string): Promise<void> {
     try {
-      await this.fetchWithUserAgent(`${this.baseUrl}/url/${stationUuid}`);
+      await this.fetchData(`${this.baseUrl}/url/${stationUuid}`);
     } catch (error) {
       console.error('Error recording click:', error);
       // Don't throw here, as click recording is not critical
