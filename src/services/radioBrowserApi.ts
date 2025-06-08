@@ -47,16 +47,12 @@ export class RadioBrowserAPI {
   }
 
   private async fetchData(url: string): Promise<Response> {
-    // Add API protection code parameter
-    const separator = url.includes('?') ? '&' : '?';
-    const urlWithCode = `${url}${separator}code=radioss`;
-    
-    return fetch(urlWithCode);
+    return fetch(url);
   }
 
   async getCountries(): Promise<Country[]> {
     try {
-      const response = await this.fetchData(`${this.baseUrl}/countries`);
+      const response = await this.fetchData(`${this.baseUrl}/countries?limit=500`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -67,7 +63,7 @@ export class RadioBrowserAPI {
     }
   }
 
-  async getStationsByCountry(countryName: string, limit: number = 100): Promise<RadioBrowserStation[]> {
+  async getStationsByCountry(countryName: string, limit: number = 2000): Promise<RadioBrowserStation[]> {
     try {
       const encodedCountry = encodeURIComponent(countryName);
       const response = await this.fetchData(
@@ -115,7 +111,7 @@ export class RadioBrowserAPI {
 
   async getAllTags(): Promise<Tag[]> {
     try {
-      const response = await this.fetchData(`${this.baseUrl}/tags?limit=500`);
+      const response = await this.fetchData(`${this.baseUrl}/tags?limit=2000`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -126,7 +122,7 @@ export class RadioBrowserAPI {
     }
   }
 
-  async globalSearch(query: string, limit: number = 100): Promise<RadioBrowserStation[]> {
+  async globalSearch(query: string, limit: number = 2000): Promise<RadioBrowserStation[]> {
     try {
       const searchParams = new URLSearchParams();
       searchParams.set('name', query);
@@ -142,6 +138,77 @@ export class RadioBrowserAPI {
       return await response.json();
     } catch (error) {
       console.error('Error in global search:', error);
+      throw error;
+    }
+  }
+
+  async paginatedGlobalSearch(query: string, page: number = 1, limit: number = 50): Promise<{ stations: RadioBrowserStation[], totalCount: number }> {
+    try {
+      // First, get total count with a high limit search
+      const countResponse = await this.fetchData(
+        `${this.baseUrl}/stations/search?name=${encodeURIComponent(query)}&limit=10000&hidebroken=true`
+      );
+      if (!countResponse.ok) {
+        throw new Error(`HTTP error! status: ${countResponse.status}`);
+      }
+      const allResults = await countResponse.json();
+      const totalCount = allResults.length;
+
+      // Then get the specific page
+      const offset = (page - 1) * limit;
+      const searchParams = new URLSearchParams();
+      searchParams.set('name', query);
+      searchParams.set('limit', limit.toString());
+      searchParams.set('offset', offset.toString());
+      searchParams.set('hidebroken', 'true');
+
+      const response = await this.fetchData(
+        `${this.baseUrl}/stations/search?${searchParams.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const stations = await response.json();
+
+      return { stations, totalCount };
+    } catch (error) {
+      console.error('Error in paginated global search:', error);
+      throw error;
+    }
+  }
+
+  async paginatedCountrySearch(countryName: string, query: string, page: number = 1, limit: number = 50): Promise<{ stations: RadioBrowserStation[], totalCount: number }> {
+    try {
+      // First, get total count with a high limit search
+      const countResponse = await this.fetchData(
+        `${this.baseUrl}/stations/search?country=${encodeURIComponent(countryName)}&name=${encodeURIComponent(query)}&limit=10000&hidebroken=true`
+      );
+      if (!countResponse.ok) {
+        throw new Error(`HTTP error! status: ${countResponse.status}`);
+      }
+      const allResults = await countResponse.json();
+      const totalCount = allResults.length;
+
+      // Then get the specific page
+      const offset = (page - 1) * limit;
+      const searchParams = new URLSearchParams();
+      searchParams.set('country', countryName);
+      searchParams.set('name', query);
+      searchParams.set('limit', limit.toString());
+      searchParams.set('offset', offset.toString());
+      searchParams.set('hidebroken', 'true');
+
+      const response = await this.fetchData(
+        `${this.baseUrl}/stations/search?${searchParams.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const stations = await response.json();
+
+      return { stations, totalCount };
+    } catch (error) {
+      console.error('Error in paginated country search:', error);
       throw error;
     }
   }
