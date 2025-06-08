@@ -16,6 +16,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { CountryList } from './components/CountryList';
 import { CustomStationsSection } from './components/CustomStationsSection';
 import { Breadcrumb } from './components/Breadcrumb';
+import { Pagination } from './components/Pagination';
 import { RadioBrowserAPI, Country } from './services/radioBrowserApi';
 import { convertRadioBrowserStations } from './services/stationConverter';
 
@@ -43,6 +44,13 @@ function App() {
   const [hasMoreStations, setHasMoreStations] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalStationsCount, setTotalStationsCount] = useState(0);
+  
+  // Pagination state for search results
+  const [globalSearchPage, setGlobalSearchPage] = useState(1);
+  const [globalSearchTotal, setGlobalSearchTotal] = useState(0);
+  const [countrySearchPage, setCountrySearchPage] = useState(1);
+  const [countrySearchTotal, setCountrySearchTotal] = useState(0);
+  const SEARCH_RESULTS_PER_PAGE = 50;
   
   const [customStations, setCustomStations] = useLocalStorage<RadioStation[]>('customStations', []);
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
@@ -86,52 +94,58 @@ function App() {
     const performGlobalSearch = async () => {
       if (browseView === 'countries' && searchQuery.trim().length > 2) {
         setIsSearching(true);
+        setGlobalSearchPage(1); // Reset to first page on new search
         try {
-          const searchResults = await api.globalSearch(searchQuery, 500);
-          const convertedResults = convertRadioBrowserStations(searchResults);
+          const { stations, totalCount } = await api.paginatedGlobalSearch(searchQuery, 1, SEARCH_RESULTS_PER_PAGE);
+          const convertedResults = convertRadioBrowserStations(stations);
           setGlobalSearchResults(convertedResults);
+          setGlobalSearchTotal(totalCount);
         } catch (error) {
           console.error('Global search failed:', error);
           setGlobalSearchResults([]);
+          setGlobalSearchTotal(0);
         } finally {
           setIsSearching(false);
         }
       } else {
         setGlobalSearchResults([]);
+        setGlobalSearchTotal(0);
+        setGlobalSearchPage(1);
       }
     };
 
     const timeoutId = setTimeout(performGlobalSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [api, browseView, searchQuery]);
+  }, [api, browseView, searchQuery, SEARCH_RESULTS_PER_PAGE]);
 
   // Search within selected country
   useEffect(() => {
     const performCountrySearch = async () => {
       if (browseView === 'stations' && selectedCountry && searchQuery.trim().length > 2) {
         setIsSearchingInCountry(true);
+        setCountrySearchPage(1); // Reset to first page on new search
         try {
-          const searchResults = await api.searchStations({
-            country: selectedCountry.name,
-            name: searchQuery,
-            limit: 1000
-          });
-          const convertedResults = convertRadioBrowserStations(searchResults);
+          const { stations, totalCount } = await api.paginatedCountrySearch(selectedCountry.name, searchQuery, 1, SEARCH_RESULTS_PER_PAGE);
+          const convertedResults = convertRadioBrowserStations(stations);
           setCountrySearchResults(convertedResults);
+          setCountrySearchTotal(totalCount);
         } catch (error) {
           console.error('Country search failed:', error);
           setCountrySearchResults([]);
+          setCountrySearchTotal(0);
         } finally {
           setIsSearchingInCountry(false);
         }
       } else {
         setCountrySearchResults([]);
+        setCountrySearchTotal(0);
+        setCountrySearchPage(1);
       }
     };
 
     const timeoutId = setTimeout(performCountrySearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [api, browseView, selectedCountry, searchQuery]);
+  }, [api, browseView, selectedCountry, searchQuery, SEARCH_RESULTS_PER_PAGE]);
 
   // Discord RPC Integration
   useEffect(() => {
@@ -209,11 +223,11 @@ function App() {
     setHasMoreStations(false);
     
     try {
-      const stationsData = await api.getStationsByCountry(country.name, 1000);
+      const stationsData = await api.getStationsByCountry(country.name, 2000);
       const convertedStations = convertRadioBrowserStations(stationsData);
       setApiStations(convertedStations);
       setTotalStationsCount(country.stationcount);
-      setHasMoreStations(stationsData.length === 1000 && country.stationcount > 1000);
+      setHasMoreStations(stationsData.length === 2000 && country.stationcount > 2000);
     } catch (error) {
       console.error('Failed to load stations for country:', error);
       setApiStations([]);
@@ -221,6 +235,42 @@ function App() {
       setHasMoreStations(false);
     } finally {
       setIsLoadingStations(false);
+    }
+  };
+
+  const handleGlobalSearchPageChange = async (page: number) => {
+    if (!searchQuery.trim() || isSearching) return;
+    
+    setGlobalSearchPage(page);
+    setIsSearching(true);
+    
+    try {
+      const { stations, totalCount } = await api.paginatedGlobalSearch(searchQuery, page, SEARCH_RESULTS_PER_PAGE);
+      const convertedResults = convertRadioBrowserStations(stations);
+      setGlobalSearchResults(convertedResults);
+      setGlobalSearchTotal(totalCount);
+    } catch (error) {
+      console.error('Global search page change failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleCountrySearchPageChange = async (page: number) => {
+    if (!searchQuery.trim() || !selectedCountry || isSearchingInCountry) return;
+    
+    setCountrySearchPage(page);
+    setIsSearchingInCountry(true);
+    
+    try {
+      const { stations, totalCount } = await api.paginatedCountrySearch(selectedCountry.name, searchQuery, page, SEARCH_RESULTS_PER_PAGE);
+      const convertedResults = convertRadioBrowserStations(stations);
+      setCountrySearchResults(convertedResults);
+      setCountrySearchTotal(totalCount);
+    } catch (error) {
+      console.error('Country search page change failed:', error);
+    } finally {
+      setIsSearchingInCountry(false);
     }
   };
 
@@ -234,6 +284,10 @@ function App() {
     setCurrentPage(1);
     setHasMoreStations(false);
     setTotalStationsCount(0);
+    setGlobalSearchPage(1);
+    setGlobalSearchTotal(0);
+    setCountrySearchPage(1);
+    setCountrySearchTotal(0);
   };
 
   const handleHomeClick = () => {
@@ -247,6 +301,10 @@ function App() {
     setCurrentPage(1);
     setHasMoreStations(false);
     setTotalStationsCount(0);
+    setGlobalSearchPage(1);
+    setGlobalSearchTotal(0);
+    setCountrySearchPage(1);
+    setCountrySearchTotal(0);
   };
 
   const handleStationSelect = (station: RadioStation) => {
@@ -347,68 +405,91 @@ function App() {
       );
     }
 
-    if (globalSearchResults.length > 0) {
+    if (globalSearchResults.length > 0 || globalSearchTotal > 0) {
+      const totalPages = Math.ceil(globalSearchTotal / SEARCH_RESULTS_PER_PAGE);
+      
       return (
         <div className="search-results-section">
           <div className="section-header">
             <h3 className="section-title">
               <Radio size={20} />
-              Radio Stations ({globalSearchResults.length})
+              Radio Stations ({globalSearchTotal} total)
             </h3>
           </div>
-          <div className="search-results-grid">
-            {globalSearchResults.map((station) => {
-              const isCurrent = currentStation?.id === station.id;
-              const isFavorite = favorites.includes(station.id);
-              
-              return (
-                <div
-                  key={station.id}
-                  className={`search-result-card ${isCurrent ? 'active' : ''}`}
-                  onClick={() => handleStationSelect(station)}
-                >
-                  <div className="search-result-header">
-                    <div className="search-result-icon">
-                      {station.favicon ? (
-                        <img src={station.favicon} alt={station.name} />
-                      ) : (
-                        <Radio size={16} className="default-icon-small" />
+          
+          {globalSearchResults.length > 0 ? (
+            <>
+              <div className="search-results-grid">
+                {globalSearchResults.map((station) => {
+                  const isCurrent = currentStation?.id === station.id;
+                  const isFavorite = favorites.includes(station.id);
+                  
+                  return (
+                    <div
+                      key={station.id}
+                      className={`search-result-card ${isCurrent ? 'active' : ''}`}
+                      onClick={() => handleStationSelect(station)}
+                    >
+                      <div className="search-result-header">
+                        <div className="search-result-icon">
+                          {station.favicon ? (
+                            <img src={station.favicon} alt={station.name} />
+                          ) : (
+                            <Radio size={16} className="default-icon-small" />
+                          )}
+                        </div>
+                        <div className="search-result-info">
+                          <h4 className="text-clamp-2" title={station.name}>{station.name}</h4>
+                        </div>
+                      </div>
+                      <div className="search-result-meta">
+                        {station.country && <span>{station.country}</span>}
+                        {station.bitrate && <span>{station.bitrate} kbps</span>}
+                        {station.tags && station.tags.length > 0 && (
+                          <span>{station.tags.slice(0, 2).join(', ')}</span>
+                        )}
+                      </div>
+                      <div className="search-result-actions">
+                        <button
+                          className={`action-btn ${isFavorite ? 'favorite' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleFavorite(station.id);
+                          }}
+                          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          {isFavorite ? <Star size={16} fill="currentColor" /> : <StarOff size={16} />}
+                        </button>
+                      </div>
+                      {isCurrent && isPlaying && (
+                        <div className="playing-indicator">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
                       )}
                     </div>
-                    <div className="search-result-info">
-                      <h4 className="text-clamp-2" title={station.name}>{station.name}</h4>
-                    </div>
-                  </div>
-                  <div className="search-result-meta">
-                    {station.country && <span>{station.country}</span>}
-                    {station.bitrate && <span>{station.bitrate} kbps</span>}
-                    {station.tags && station.tags.length > 0 && (
-                      <span>{station.tags.slice(0, 2).join(', ')}</span>
-                    )}
-                  </div>
-                  <div className="search-result-actions">
-                    <button
-                      className={`action-btn ${isFavorite ? 'favorite' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(station.id);
-                      }}
-                      title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      {isFavorite ? <Star size={16} fill="currentColor" /> : <StarOff size={16} />}
-                    </button>
-                  </div>
-                  {isCurrent && isPlaying && (
-                    <div className="playing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+              
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={globalSearchPage}
+                  totalPages={totalPages}
+                  totalItems={globalSearchTotal}
+                  itemsPerPage={SEARCH_RESULTS_PER_PAGE}
+                  onPageChange={handleGlobalSearchPageChange}
+                  isLoading={isSearching}
+                />
+              )}
+            </>
+          ) : (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Loading search results...</p>
+            </div>
+          )}
         </div>
       );
     }
@@ -461,8 +542,8 @@ function App() {
         <div className="browse-header">
           <h2 className="browse-title">
             Radio Stations in {selectedCountry?.name}
-            {searchQuery.trim().length > 2 && countrySearchResults.length > 0 && (
-              <span className="search-results-count"> - {countrySearchResults.length} search results</span>
+            {searchQuery.trim().length > 2 && countrySearchTotal > 0 && (
+              <span className="search-results-count"> - {countrySearchTotal} search results</span>
             )}
             {!searchQuery.trim() && apiStations.length > 0 && (
               <span className="stations-count"> - {apiStations.length}{totalStationsCount > apiStations.length ? ` of ${totalStationsCount}` : ''} stations</span>
@@ -491,6 +572,20 @@ function App() {
               onToggleFavorite={handleToggleFavorite}
               onDeleteCustomStation={handleDeleteCustomStation}
             />
+            
+            {/* Pagination for country search results */}
+            {searchQuery.trim().length > 2 && countrySearchTotal > 0 && (
+              <Pagination
+                currentPage={countrySearchPage}
+                totalPages={Math.ceil(countrySearchTotal / SEARCH_RESULTS_PER_PAGE)}
+                totalItems={countrySearchTotal}
+                itemsPerPage={SEARCH_RESULTS_PER_PAGE}
+                onPageChange={handleCountrySearchPageChange}
+                isLoading={isSearchingInCountry}
+              />
+            )}
+            
+            {/* Load more for non-search results */}
             {hasMoreStations && !searchQuery.trim() && (
               <div className="load-more-section">
                 <button 
@@ -531,7 +626,7 @@ function App() {
     
     try {
       // For Radio Browser API, we need to make a new request with higher limit
-      const totalToLoad = Math.min((nextPage * 1000), totalStationsCount);
+      const totalToLoad = Math.min((nextPage * 2000), totalStationsCount);
       const stationsData = await api.getStationsByCountry(selectedCountry.name, totalToLoad);
       const convertedStations = convertRadioBrowserStations(stationsData);
       
