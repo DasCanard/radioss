@@ -1,6 +1,6 @@
 [package]
 name = "radioss"
-version = "0.7.0"
+version = "0.8.1"
 description = "A modern, cross-platform internet radio player built with Tauri, React, and TypeScript."
 authors = ["richy"]
 edition = "2021"
