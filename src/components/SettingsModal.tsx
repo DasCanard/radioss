@@ -10,14 +10,15 @@ interface SettingsModalProps {
   onMinimizeToTrayToggle: (enabled: boolean) => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
-  isOpen,
-  onClose,
-  discordRPCEnabled,
-  onDiscordRPCToggle,
-  minimizeToTrayEnabled,
-  onMinimizeToTrayToggle
-}) => {
+export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
+  const {
+    isOpen,
+    onClose,
+    discordRPCEnabled,
+    onDiscordRPCToggle,
+    minimizeToTrayEnabled,
+    onMinimizeToTrayToggle
+  } = props;
   if (!isOpen) return null;
 
   return (
