@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Library, Plus, Home, ArrowLeft, Globe, Radio, Star, StarOff, Settings } from 'lucide-react';
 import './App.css';
 import { RadioStation } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage';
+import { useFileStorage } from './hooks/useFileStorage';
 import { useLoadingScreen } from './hooks/useLoadingScreen';
 import { useDiscordRPC } from './hooks/useDiscordRPC';
 import { useMinimizeToTray } from './hooks/useMinimizeToTray';
@@ -52,20 +52,20 @@ function App() {
   const [countrySearchTotal, setCountrySearchTotal] = useState(0);
   const SEARCH_RESULTS_PER_PAGE = 50;
   
-  const [customStations, setCustomStations] = useLocalStorage<RadioStation[]>('customStations', []);
-  const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
-  const [favoritedStations, setFavoritedStations] = useLocalStorage<RadioStation[]>('favoritedStations', []);
-  const [volume, setVolume] = useLocalStorage<number>('volume', 50);
+  const [customStations, setCustomStations] = useFileStorage<RadioStation[]>('customStations', []);
+  const [favorites, setFavorites] = useFileStorage<string[]>('favorites', []);
+  const [favoritedStations, setFavoritedStations] = useFileStorage<RadioStation[]>('favoritedStations', []);
+  const [volume, setVolume] = useFileStorage<number>('volume', 50);
   
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  const [discordRPCEnabled, setDiscordRPCEnabled] = useLocalStorage<boolean>('discordRPCEnabled', true);
-  const [minimizeToTrayEnabled, setMinimizeToTrayEnabled] = useLocalStorage<boolean>('minimizeToTrayEnabled', false);
+  const [discordRPCEnabled, setDiscordRPCEnabled] = useFileStorage<boolean>('discordRPCEnabled', true);
+  const [minimizeToTrayEnabled, setMinimizeToTrayEnabled] = useFileStorage<boolean>('minimizeToTrayEnabled', false);
 
   const api = useMemo(() => new RadioBrowserAPI(), []);
-  const { updateActivity, clearActivity } = useDiscordRPC(discordRPCEnabled, setDiscordRPCEnabled);
+  const { updateActivity, clearActivity } = useDiscordRPC(discordRPCEnabled);
   
   useMinimizeToTray(minimizeToTrayEnabled);
 
@@ -171,7 +171,7 @@ function App() {
     const query = searchQuery.toLowerCase();
     return allStations.filter(station => 
       station.name.toLowerCase().includes(query) ||
-      station.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+      station.tags?.some((tag: string) => tag.toLowerCase().includes(query)) ||
       station.country?.toLowerCase().includes(query)
     );
   }, [allStations, searchQuery]);
@@ -189,18 +189,18 @@ function App() {
     const query = searchQuery.toLowerCase();
     return customStations.filter(station => 
       station.name.toLowerCase().includes(query) ||
-      station.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+      station.tags?.some((tag: string) => tag.toLowerCase().includes(query)) ||
       station.country?.toLowerCase().includes(query)
     );
   }, [customStations, searchQuery, browseView]);
 
   const libraryStations = useMemo(() => {
     const allFavoriteStations = [
-      ...customStations.filter(station => favorites.includes(station.id)),
-      ...favoritedStations.filter(station => favorites.includes(station.id))
+      ...customStations.filter((station: RadioStation) => favorites.includes(station.id)),
+      ...favoritedStations.filter((station: RadioStation) => favorites.includes(station.id))
     ];
     
-    const uniqueStations = allFavoriteStations.reduce((acc, station) => {
+    const uniqueStations = allFavoriteStations.reduce((acc: RadioStation[], station: RadioStation) => {
       if (!acc.find(s => s.id === station.id)) {
         acc.push(station);
       }

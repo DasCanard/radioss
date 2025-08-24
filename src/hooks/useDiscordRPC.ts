@@ -7,12 +7,10 @@ interface DiscordRPCHook {
   clearActivity: () => Promise<void>;
   disconnectDiscord: () => Promise<void>;
   isEnabled: boolean;
-  setEnabled: (enabled: boolean) => void;
 }
 
 export const useDiscordRPC = (
-  enabled: boolean,
-  setEnabled: (enabled: boolean) => void
+  enabled: boolean
 ): DiscordRPCHook => {
   const isConnectedRef = useRef(false);
 
@@ -95,7 +93,6 @@ export const useDiscordRPC = (
     updateActivity,
     clearActivity,
     disconnectDiscord,
-    isEnabled: enabled,
-    setEnabled
+    isEnabled: enabled
   };
 }; 

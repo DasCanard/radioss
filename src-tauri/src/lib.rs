@@ -8,6 +8,8 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 };
+use std::fs;
+use serde_json::{json, Value};
 
 // Global Discord RPC Manager
 type DiscordState = Arc<Mutex<DiscordRPCManager>>;
@@ -63,6 +65,67 @@ async fn hide_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn save_data(app: AppHandle, data_type: String, data: Value) -> Result<(), String> {
+    let app_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Could not get app data directory: {}", e))?;
+    
+    // Create app data directory if it doesn't exist
+    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    
+    let file_path = app_dir.join(format!("{}.json", data_type));
+    println!("🔧 SAVING DATA: {} -> {}", data_type, file_path.display());
+    
+    let json_string = serde_json::to_string_pretty(&data)
+        .map_err(|e| e.to_string())?;
+    
+    let json_len = json_string.len();
+    fs::write(&file_path, &json_string).map_err(|e| e.to_string())?;
+    println!("✅ SUCCESSFULLY SAVED: {} ({} bytes)", file_path.display(), json_len);
+    Ok(())
+}
+
+#[tauri::command]
+async fn load_data(app: AppHandle, data_type: String) -> Result<Value, String> {
+    let app_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Could not get app data directory: {}", e))?;
+    
+    // Create app data directory if it doesn't exist
+    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    
+    let file_path = app_dir.join(format!("{}.json", data_type));
+    println!("📂 LOADING DATA: {} <- {}", data_type, file_path.display());
+    
+    if !file_path.exists() {
+        println!("⚠️  FILE NOT FOUND: {} (creating default config)", file_path.display());
+        
+        // Create default configuration based on data type
+        let default_data = match data_type.as_str() {
+            "customStations" => json!([]),
+            "favorites" => json!([]),
+            "favoritedStations" => json!([]),
+            "volume" => json!(50),
+            "discordRPCEnabled" => json!(true),
+            "minimizeToTrayEnabled" => json!(false),
+            _ => json!(null)
+        };
+        
+        // Save the default configuration
+        let json_string = serde_json::to_string_pretty(&default_data)
+            .map_err(|e| e.to_string())?;
+        
+        fs::write(&file_path, &json_string).map_err(|e| e.to_string())?;
+        println!("✅ CREATED DEFAULT CONFIG: {} ({} bytes)", file_path.display(), json_string.len());
+        
+        return Ok(default_data);
+    }
+    
+    let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+    println!("✅ SUCCESSFULLY LOADED: {} ({} bytes)", file_path.display(), content.len());
+    let data: Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    Ok(data)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let discord_manager: DiscordState = Arc::new(Mutex::new(DiscordRPCManager::new()));
@@ -79,7 +142,9 @@ pub fn run() {
             discord_clear_activity,
             discord_disconnect,
             show_window,
-            hide_window
+            hide_window,
+            save_data,
+            load_data
         ])
         .setup(|app| {
             // Create tray menu
