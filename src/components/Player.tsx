@@ -24,6 +24,7 @@ export const Player: React.FC<PlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previousVolume, setPreviousVolume] = useState<number>(50);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -60,6 +61,17 @@ export const Player: React.FC<PlayerProps> = ({
   const handleError = () => {
     setIsLoading(false);
     setError('Failed to load station');
+  };
+
+  const handleMuteToggle = () => {
+    if (volume === 0) {
+      // Unmute: restore previous volume
+      onVolumeChange(previousVolume);
+    } else {
+      // Mute: save current volume and set to 0
+      setPreviousVolume(volume);
+      onVolumeChange(0);
+    }
   };
 
   return (
@@ -138,7 +150,7 @@ export const Player: React.FC<PlayerProps> = ({
       <div className="volume-control">
         <button 
           className="control-btn"
-          onClick={() => onVolumeChange(volume === 0 ? 50 : 0)}
+          onClick={handleMuteToggle}
         >
           {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
