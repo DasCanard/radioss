@@ -30,10 +30,8 @@ body {
 .header-brand:hover { opacity: 0.8; }
 .header-brand h1 { font-size: 1.5rem; font-weight: 700; }
 .header-right { display: flex; align-items: center; gap: 1rem; }
-.logo-wrapper { width: 48px; height: 48px; background: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; animation: logo-glow 3s ease-in-out infinite; }
-.logo-icon { width: 32px; height: 32px; animation: logo-pulse 2s ease-in-out infinite; }
-@keyframes logo-glow { 0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); } 50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.8); } }
-@keyframes logo-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+.logo-wrapper { width: 48px; height: 48px; background: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.logo-icon { width: 32px; height: 32px; }
 
 /* Navigation */
 .nav-tabs { display: flex; gap: 0.5rem; }
@@ -251,8 +249,7 @@ input:checked + .toggle-slider:before { transform: translateX(24px); }
 .footer-content { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .made-with { font-size: 0.875rem; color: var(--text-sec); display: flex; align-items: center; gap: 0.25rem; margin: 0; }
 .version-info { font-size: 0.75rem; color: var(--text-sec); opacity: 0.7; font-weight: 500; }
-.heart-icon { color: var(--danger); animation: heartbeat 5s ease-in-out infinite; }
-@keyframes heartbeat { 0%, 100% { transform: scale(1); } 10%, 30% { transform: scale(1.15); } 20%, 40% { transform: scale(1); } }
+.heart-icon { color: var(--danger); }
 .author-link { color: var(--primary); text-decoration: none; font-weight: 600; transition: var(--transition); position: relative; }
 .author-link:hover { color: var(--primary-hover); }
 .author-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 2px; background: var(--primary); transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease; }
