@@ -33,6 +33,23 @@
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "",
+      "signingIdentity": "-",
+      "entitlements": null,
+      "info": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "radioss",
+            "CFBundleURLSchemes": ["radioss"]
+          }
+        ],
+        "LSMinimumSystemVersion": "10.13",
+        "NSHumanReadableCopyright": ""
+      }
     }
   },
   "plugins": {
