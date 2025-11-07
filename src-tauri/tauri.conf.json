@@ -39,17 +39,7 @@
       "minimumSystemVersion": "10.13",
       "exceptionDomain": "",
       "signingIdentity": "-",
-      "entitlements": null,
-      "info": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLName": "radioss",
-            "CFBundleURLSchemes": ["radioss"]
-          }
-        ],
-        "LSMinimumSystemVersion": "10.13",
-        "NSHumanReadableCopyright": ""
-      }
+      "entitlements": null
     }
   },
   "plugins": {
