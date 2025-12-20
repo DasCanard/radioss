@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://stations.radioss.app/json';
+const API_BASE_URL = 'https://stations.richy.sh/json';
 
 export interface Country {
   name: string;
