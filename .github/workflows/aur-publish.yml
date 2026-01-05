@@ -1,0 +1,148 @@
+name: Publish to AUR
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish to AUR (e.g., v0.9.0)'
+        required: true
+        type: string
+
+jobs:
+  publish-to-aur:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest release tag
+        if: github.event_name == 'workflow_run'
+        id: get-latest-release
+        run: |
+          TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq '.tag_name')
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set version from manual input
+        if: github.event_name == 'workflow_dispatch'
+        id: set-version
+        run: |
+          TAG="${{ github.event.inputs.version }}"
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download Debian package
+        id: download-deb
+        run: |
+          TAG=${{ github.event_name == 'workflow_run' && steps.get-latest-release.outputs.tag || steps.set-version.outputs.tag }}
+          VERSION=${{ github.event_name == 'workflow_run' && steps.get-latest-release.outputs.version || steps.set-version.outputs.version }}
+          
+          # Find and download .deb package
+          DEB_URL=$(gh api repos/${{ github.repository }}/releases/tags/$TAG --jq '.assets[] | select(.name | test(".*\\.deb$")) | .browser_download_url' | head -1)
+          
+          if [ -z "$DEB_URL" ]; then
+            echo "Error: Debian package not found in release $TAG"
+            exit 1
+          fi
+          
+          echo "Downloading .deb package from: $DEB_URL"
+          wget -O radioss.deb "$DEB_URL"
+          
+          # Calculate SHA256 checksum
+          SHA256=$(sha256sum radioss.deb | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "deb_url=$DEB_URL" >> $GITHUB_OUTPUT
+          
+          echo "Debian package SHA256: $SHA256"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+      - name: Add AUR to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ secrets.AUR_USERNAME }}"
+          git config --global user.email "${{ secrets.AUR_EMAIL }}"
+
+      - name: Clone AUR repository
+        run: |
+          git clone ssh://aur@aur.archlinux.org/radioss.git aur-repo || true
+          if [ ! -d "aur-repo" ]; then
+            echo "Error: Failed to clone AUR repository"
+            exit 1
+          fi
+
+      - name: Generate PKGBUILD
+        working-directory: aur-repo
+        run: |
+          VERSION=${{ github.event_name == 'workflow_run' && steps.get-latest-release.outputs.version || steps.set-version.outputs.version }}
+          SHA256="${{ steps.download-deb.outputs.sha256 }}"
+          DEB_URL="${{ steps.download-deb.outputs.deb_url }}"
+          MAINTAINER="${{ secrets.AUR_USERNAME }}"
+          
+          cat > PKGBUILD << EOF
+          # Maintainer: ${MAINTAINER}
+          pkgname=radioss
+          pkgver=${VERSION}
+          pkgrel=1
+          pkgdesc="A modern, cross-platform internet radio player built with Tauri, React, and TypeScript"
+          arch=('x86_64')
+          url="https://github.com/DasCanard/radioss"
+          license=('MIT')
+          depends=('openssl' 'webkit2gtk')
+          source=("radioss-\${pkgver}.deb::${DEB_URL}")
+          sha256sums=('${SHA256}')
+          
+          package() {
+            # Extract .deb package
+            ar x "\${srcdir}/radioss-\${pkgver}.deb"
+            tar -xf data.tar.xz
+            
+            # Install files
+            cp -r usr/* "\${pkgdir}/"
+          }
+          EOF
+          
+          cat PKGBUILD
+
+      - name: Update .SRCINFO
+        working-directory: aur-repo
+        run: |
+          # Generate .SRCINFO using makepkg in Docker container
+          docker run --rm \
+            -v "$PWD:/mnt" \
+            -w /mnt \
+            archlinux:base-devel \
+            bash -c "makepkg --printsrcinfo > .SRCINFO && cat .SRCINFO"
+
+      - name: Commit and push to AUR
+        working-directory: aur-repo
+        run: |
+          VERSION=${{ github.event_name == 'workflow_run' && steps.get-latest-release.outputs.version || steps.set-version.outputs.version }}
+          
+          git add PKGBUILD .SRCINFO
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update to version $VERSION"
+            git push origin master
+            echo "Successfully published radioss $VERSION to AUR"
+          fi
