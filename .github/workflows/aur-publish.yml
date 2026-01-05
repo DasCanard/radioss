@@ -130,7 +130,7 @@ jobs:
             -v "$PWD:/mnt" \
             -w /mnt \
             archlinux:base-devel \
-            bash -c "makepkg --printsrcinfo > .SRCINFO && cat .SRCINFO"
+            bash -c "useradd -m -u 1000 builder && chown -R builder:builder /mnt && su builder -c 'cd /mnt && makepkg --printsrcinfo > .SRCINFO && cat .SRCINFO'"
 
       - name: Commit and push to AUR
         working-directory: aur-repo
