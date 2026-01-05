@@ -134,7 +134,7 @@ jobs:
             -v "$PWD:/mnt" \
             -w /mnt \
             archlinux:base-devel \
-            bash -c "useradd -m -u $USER_ID -g $GROUP_ID builder && chown -R builder:builder /mnt && su builder -c 'cd /mnt && makepkg --printsrcinfo > .SRCINFO && cat .SRCINFO'"
+            bash -c "groupadd -g $GROUP_ID builder && useradd -m -u $USER_ID -g $GROUP_ID builder && chown -R builder:builder /mnt && su builder -c 'cd /mnt && makepkg --printsrcinfo > .SRCINFO && cat .SRCINFO'"
           
           # Fix permissions after Docker run (in case Docker changed them)
           chmod -R u+w .
