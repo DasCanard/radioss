@@ -2,13 +2,13 @@ name: Test Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
 
 jobs:
   test-build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,61 +16,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '24'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run TypeScript type check
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libssl-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
+      - name: Run tests
+        run: npm test
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            src-tauri/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Check Rust code formatting
-        working-directory: src-tauri
-        run: cargo fmt -- --check
-
-      - name: Run Clippy
-        working-directory: src-tauri
-        run: cargo clippy -- -D warnings
-
-      - name: Build frontend
+      - name: Build Electron app
         run: npm run build
 
-      - name: Test Tauri build (without bundling)
-        working-directory: src-tauri
-        run: cargo build --release
+      - name: Package Linux artifacts without publishing
+        run: npx electron-builder --linux AppImage deb rpm --x64 --publish never
         env:
-          TAURI_SKIP_BUNDLE: true
-
+          CSC_IDENTITY_AUTO_DISCOVERY: false

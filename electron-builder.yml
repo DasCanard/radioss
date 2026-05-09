@@ -1,0 +1,51 @@
+appId: com.dascanard.radioss
+productName: Radioss
+asar: true
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist/**/*
+  - out/main/**/*
+  - out/preload/**/*
+  - package.json
+
+extraResources:
+  - from: build/icons
+    to: icons
+
+publish:
+  - provider: github
+    owner: DasCanard
+    repo: radioss
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  identity: null
+  icon: icons/icon.icns
+  category: public.app-category.music
+
+win:
+  target:
+    - nsis
+    - msi
+  icon: icons/radioss.ico
+
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  icon: icons
+  category: AudioVideo
+  maintainer: richy
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

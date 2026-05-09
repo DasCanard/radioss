@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, SetStateAction, Dispatch } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 
 export function useFileStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
@@ -12,7 +11,9 @@ export function useFileStorage<T>(key: string, initialValue: T): [T, Dispatch<Se
     const loadData = async () => {
       console.log(`🔄 [useFileStorage] Loading ${key} from file...`);
       try {
-        const data = await invoke('load_data', { dataType: key });
+        const data = window.radioss
+          ? await window.radioss.storage.loadData<T>(key)
+          : loadFromLocalStorage<T>(key);
         if (data !== null) {
           console.log(`✅ [useFileStorage] Loaded ${key}:`, data);
           setStoredValue(data as T);
@@ -37,7 +38,7 @@ export function useFileStorage<T>(key: string, initialValue: T): [T, Dispatch<Se
     setStoredValue(valueToStore);
     
     // Save to file asynchronously
-    invoke('save_data', { dataType: key, data: valueToStore })
+    saveData(key, valueToStore)
       .then(() => {
         console.log(`✅ [useFileStorage] Successfully saved ${key}`);
       })
@@ -47,4 +48,18 @@ export function useFileStorage<T>(key: string, initialValue: T): [T, Dispatch<Se
   }, [key, storedValue]);
 
   return [storedValue, setValue];
+}
+
+async function saveData<T>(key: string, value: T): Promise<void> {
+  if (window.radioss) {
+    await window.radioss.storage.saveData(key, value);
+    return;
+  }
+
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadFromLocalStorage<T>(key: string): T | null {
+  const item = localStorage.getItem(key);
+  return item === null ? null : JSON.parse(item) as T;
 }

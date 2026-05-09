@@ -5,7 +5,7 @@ export const useLoadingScreen = () => {
     let appReady = false;
     let minTimeElapsed = false;
 
-    const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__;
+    const isElectron = typeof window !== 'undefined' && Boolean(window.radioss);
 
     const hideLoadingScreen = () => {
       if (appReady && minTimeElapsed) {
@@ -23,19 +23,16 @@ export const useLoadingScreen = () => {
       hideLoadingScreen();
     }, 300);
 
-    if (isTauri) {
-      import('@tauri-apps/api/app').then(({ getName }) => {
-        getName().then(() => {
+    if (isElectron && window.radioss) {
+      window.radioss.app.getName()
+        .then(() => {
           appReady = true;
           hideLoadingScreen();
-        }).catch(() => {
+        })
+        .catch(() => {
           appReady = true;
           hideLoadingScreen();
         });
-      }).catch(() => {
-        appReady = true;
-        hideLoadingScreen();
-      });
     } else {
       appReady = true;
       hideLoadingScreen();
@@ -45,4 +42,4 @@ export const useLoadingScreen = () => {
       clearTimeout(minTimer);
     };
   }, []);
-}; 
+};

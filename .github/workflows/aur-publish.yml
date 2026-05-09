@@ -102,18 +102,18 @@ jobs:
           pkgname=radioss
           pkgver=${VERSION}
           pkgrel=1
-          pkgdesc="A modern, cross-platform internet radio player built with Tauri, React, and TypeScript"
+          pkgdesc="A modern, cross-platform internet radio player built with Electron, React, and TypeScript"
           arch=('x86_64')
           url="https://github.com/DasCanard/radioss"
           license=('MIT')
-          depends=('openssl' 'webkit2gtk')
+          depends=('gtk3' 'nss' 'libxss')
           source=("radioss-\${pkgver}.deb::${DEB_URL}")
           sha256sums=('${SHA256}')
           
           package() {
             # Extract .deb package
             ar x "\${srcdir}/radioss-\${pkgver}.deb"
-            tar -xf data.tar.xz
+            tar -xf data.tar.*
             
             # Install files
             cp -r usr/* "\${pkgdir}/"

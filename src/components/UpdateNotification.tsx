@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
 import { Download, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface UpdateInfo {
@@ -23,14 +21,22 @@ export const UpdateNotification: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    return window.radioss?.updates.onProgress((progress) => {
+      setDownloadProgress(progress);
+    });
+  }, []);
+
+  useEffect(() => {
     if (updateInfo?.available) {
       setTimeout(() => setIsVisible(true), 100);
     }
   }, [updateInfo]);
 
   const checkForUpdates = async () => {
+    if (!window.radioss) return;
+
     try {
-      const update = await check();
+      const update = await window.radioss.updates.check();
       if (update?.available) {
         setUpdateInfo({
           available: true,
@@ -45,36 +51,15 @@ export const UpdateNotification: React.FC = () => {
   };
 
   const downloadAndInstall = async () => {
-    if (!updateInfo) return;
+    const api = window.radioss;
+    if (!updateInfo || !api) return;
     
     try {
       setDownloading(true);
       setError(null);
-      
-      const update = await check();
-      if (!update?.available) return;
+      setDownloadProgress(0);
 
-      let downloaded = 0;
-      let contentLength = 0;
-      
-      await update.downloadAndInstall((event: any) => {
-        switch (event.event) {
-          case 'Started':
-            contentLength = event.data.contentLength || 0;
-            console.log(`Started downloading ${contentLength} bytes`);
-            break;
-          case 'Progress':
-            downloaded += event.data.chunkLength;
-            const progress = contentLength > 0 ? (downloaded / contentLength) * 100 : 0;
-            setDownloadProgress(Math.round(progress));
-            break;
-          case 'Finished':
-            console.log('Download finished');
-            break;
-        }
-      });
-
-      await relaunch();
+      await api.updates.downloadAndInstall();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
       setDownloading(false);
@@ -157,4 +142,4 @@ export const UpdateNotification: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

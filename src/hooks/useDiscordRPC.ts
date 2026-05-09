@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useCallback, useEffect, useRef } from 'react';
 
 interface DiscordRPCHook {
   connectDiscord: () => Promise<void>;
@@ -14,71 +13,77 @@ export const useDiscordRPC = (
 ): DiscordRPCHook => {
   const isConnectedRef = useRef(false);
 
-  const connectDiscord = async (): Promise<void> => {
-    if (!enabled) return;
+  const connectDiscord = useCallback(async (): Promise<void> => {
+    if (!enabled || !window.radioss) return;
     
     try {
       if (!isConnectedRef.current) {
-        await invoke('discord_connect');
-        isConnectedRef.current = true;
-        console.log('Discord RPC connected successfully');
+        const connected = await window.radioss.discord.connect();
+        isConnectedRef.current = connected;
+        if (connected) {
+          console.log('Discord RPC connected successfully');
+        }
       }
     } catch (error) {
       console.error('Failed to connect Discord RPC:', error);
       // Fehler nicht weiterwerfen, da Discord RPC optional ist
     }
-  };
+  }, [enabled]);
 
-  const updateActivity = async (stationName: string, tags?: string[]): Promise<void> => {
-    if (!enabled) return;
+  const updateActivity = useCallback(async (stationName: string, tags?: string[]): Promise<void> => {
+    if (!enabled || !window.radioss) return;
     
     try {
       if (!isConnectedRef.current) {
         await connectDiscord();
       }
+
+      if (!isConnectedRef.current) {
+        return;
+      }
       
       const tagsString = tags?.length ? tags.slice(0, 3).join(' • ') : undefined;
       
-      await invoke('discord_update_activity', {
-        stationName,
-        tags: tagsString
-      });
-      
-      console.log('Discord activity updated:', stationName);
+      const updated = await window.radioss.discord.updateActivity(stationName, tagsString);
+      isConnectedRef.current = updated;
+
+      if (updated) {
+        console.log('Discord activity updated:', stationName);
+      }
     } catch (error) {
       console.error('Failed to update Discord activity:', error);
     }
-  };
+  }, [connectDiscord, enabled]);
 
-  const clearActivity = async (): Promise<void> => {
+  const clearActivity = useCallback(async (): Promise<void> => {
     try {
       if (isConnectedRef.current) {
-        await invoke('discord_clear_activity');
+        await window.radioss?.discord.clearActivity();
         console.log('Discord activity cleared');
       }
     } catch (error) {
       console.error('Failed to clear Discord activity:', error);
     }
-  };
+  }, []);
 
-  const disconnectDiscord = async (): Promise<void> => {
+  const disconnectDiscord = useCallback(async (): Promise<void> => {
     try {
       if (isConnectedRef.current) {
-        await invoke('discord_disconnect');
+        await window.radioss?.discord.disconnect();
         isConnectedRef.current = false;
         console.log('Discord RPC disconnected');
       }
     } catch (error) {
       console.error('Failed to disconnect Discord RPC:', error);
     }
-  };
+  }, []);
 
   // Cleanup beim Unmount oder wenn disabled
   useEffect(() => {
     if (!enabled && isConnectedRef.current) {
       disconnectDiscord();
     }
-  }, [enabled]);
+  }, [disconnectDiscord, enabled]);
 
   useEffect(() => {
     return () => {
@@ -95,4 +100,4 @@ export const useDiscordRPC = (
     disconnectDiscord,
     isEnabled: enabled
   };
-}; 
+};

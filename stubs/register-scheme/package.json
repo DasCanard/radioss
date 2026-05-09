@@ -1,0 +1,7 @@
+{
+  "name": "register-scheme",
+  "version": "0.0.2",
+  "main": "index.js",
+  "description": "No-op register-scheme stub for Discord RPC in Electron.",
+  "license": "MIT"
+}
