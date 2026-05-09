@@ -37,13 +37,12 @@ jobs:
 
       - run: npm run build
 
-      - name: Build and publish Electron artifacts
-        run: npx electron-builder ${{ matrix.args }} --publish always
+      - name: Build Electron artifacts
+        run: npx electron-builder ${{ matrix.args }} --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload Electron artifacts for legacy updater
+      - name: Upload Electron artifacts for publishing
         uses: actions/upload-artifact@v4
         with:
           name: electron-release-${{ matrix.platform }}
@@ -57,7 +56,7 @@ jobs:
             !release/builder-debug.yml
             !release/builder-effective-config.yaml
 
-  legacy-tauri-update:
+  publish:
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -83,6 +82,23 @@ jobs:
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
 
+      - name: Ensure release tag exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.TAG }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh api "repos/${REPO}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
+            echo "Tag ${TAG} already exists."
+            exit 0
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${REPO}/git/refs" \
+            -f "ref=refs/tags/${TAG}" \
+            -f "sha=${GITHUB_SHA}"
+
       - uses: actions/download-artifact@v4
         with:
           pattern: electron-release-*
@@ -107,35 +123,98 @@ jobs:
           done
 
       - id: github-release
-        name: Resolve GitHub release
+        name: Create or resolve GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version.outputs.TAG }}
           VERSION: ${{ steps.version.outputs.VERSION }}
           REPO: ${{ github.repository }}
         run: |
+          readarray -t UNTAGGED_DRAFT_IDS < <(
+            gh api "repos/${REPO}/releases" --paginate |
+              jq -s -r --arg version "$VERSION" '
+                [.[][] | select(
+                  .draft == true and
+                  (.tag_name | startswith("untagged-")) and
+                  (
+                    .name == $version or
+                    .name == ("Radioss " + $version) or
+                    .name == ("radioss " + $version)
+                  )
+                )] | .[].id
+              '
+          )
+
+          for draft_id in "${UNTAGGED_DRAFT_IDS[@]}"; do
+            echo "Deleting stale untagged draft release ${draft_id}"
+            gh api --method DELETE "repos/${REPO}/releases/${draft_id}"
+          done
+
           RELEASE_JSON="$(
             gh api "repos/${REPO}/releases" --paginate |
-              jq -s -c --arg tag "$TAG" --arg version "$VERSION" '
-                [.[][] | select(
-                  .tag_name == $tag or
-                  .tag_name == $version or
-                  .tag_name == ("v" + $version) or
-                  .name == $tag or
-                  .name == $version or
-                  .name == ("Radioss " + $version) or
-                  .name == ("radioss " + $version)
-                )] | first // empty
+              jq -s -c --arg tag "$TAG" '
+                [.[][] | select(.tag_name == $tag)] | sort_by(.created_at) | first // empty
               '
           )"
 
           if [[ -z "$RELEASE_JSON" ]]; then
-            echo "Could not find a GitHub release or draft for ${TAG}."
+            RELEASE_JSON="$(
+              gh api \
+                --method POST \
+                "repos/${REPO}/releases" \
+                -f "tag_name=${TAG}" \
+                -f "target_commitish=${GITHUB_SHA}" \
+                -f "name=${VERSION}" \
+                -f "body=See the assets to download this version and install." \
+                -F "draft=true" \
+                -F "prerelease=false"
+            )"
+          fi
+
+          RELEASE_ID="$(jq -r '.id // empty' <<< "$RELEASE_JSON")"
+          RELEASE_TAG="$(jq -r '.tag_name // empty' <<< "$RELEASE_JSON")"
+
+          if [[ -z "$RELEASE_ID" || "$RELEASE_TAG" != "$TAG" ]]; then
+            echo "Could not create or resolve GitHub release for ${TAG}."
+            echo "$RELEASE_JSON"
             exit 1
           fi
 
-          echo "id=$(jq -r '.id' <<< "$RELEASE_JSON")" >> "$GITHUB_OUTPUT"
-          echo "tag=$(jq -r '.tag_name' <<< "$RELEASE_JSON")" >> "$GITHUB_OUTPUT"
+          readarray -t DUPLICATE_DRAFT_IDS < <(
+            gh api "repos/${REPO}/releases" --paginate |
+              jq -s -r --arg tag "$TAG" --arg version "$VERSION" --arg release_id "$RELEASE_ID" '
+                [.[][] | select(
+                  (.id | tostring) != $release_id and
+                  .draft == true and
+                  (
+                    .tag_name == $tag or
+                    .tag_name == $version or
+                    .tag_name == ("v" + $version) or
+                    .name == $tag or
+                    .name == $version or
+                    .name == ("Radioss " + $version) or
+                    .name == ("radioss " + $version) or
+                    (
+                      (.tag_name | startswith("untagged-")) and
+                      (
+                        .name == $tag or
+                        .name == $version or
+                        .name == ("Radioss " + $version) or
+                        .name == ("radioss " + $version)
+                      )
+                    )
+                  )
+                )] | .[].id
+              '
+          )
+
+          for duplicate_id in "${DUPLICATE_DRAFT_IDS[@]}"; do
+            echo "Deleting duplicate draft release ${duplicate_id}"
+            gh api --method DELETE "repos/${REPO}/releases/${duplicate_id}"
+          done
+
+          echo "id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Generate legacy Tauri latest.json
         run: |
@@ -146,14 +225,19 @@ jobs:
             --repo DasCanard/radioss \
             --output latest.json
 
-      - name: Upload legacy Tauri update assets
+      - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ steps.github-release.outputs.id }}
           REPO: ${{ github.repository }}
         run: |
-          files=(latest.json assets/*.sig)
+          shopt -s nullglob
+          files=(assets/* latest.json)
           for file in "${files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              continue
+            fi
+
             asset_name="$(basename "$file")"
             existing_asset_ids="$(
               gh api "repos/${REPO}/releases/${RELEASE_ID}/assets" \

@@ -42,6 +42,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     width: 800,
     height: 600,
     title: 'radioss',
+    autoHideMenuBar: true,
     icon: getIconPath(process.platform === 'win32' ? 'radioss.ico' : 'radioss.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),

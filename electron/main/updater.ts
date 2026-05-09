@@ -48,6 +48,10 @@ async function getAutoUpdater(): Promise<AutoUpdater> {
     const updaterModule = await import('electron-updater');
     autoUpdater = updaterModule.autoUpdater;
     autoUpdater.autoDownload = false;
+    autoUpdater.on('checking-for-update', () => console.info('Checking for updates...'));
+    autoUpdater.on('update-available', (info) => console.info(`Update available: ${info.version}`));
+    autoUpdater.on('update-not-available', (info) => console.info(`No update available: ${info.version}`));
+    autoUpdater.on('error', (error) => console.error('Updater error:', error));
     autoUpdater.on('download-progress', (progress) => {
       windowState.mainWindow?.webContents.send('updates:progress', Math.round(progress.percent ?? 0));
     });

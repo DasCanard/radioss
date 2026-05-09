@@ -17,7 +17,19 @@ export const UpdateNotification: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    const retryTimeout = window.setTimeout(() => {
+      checkForUpdates();
+    }, 10_000);
+    const interval = window.setInterval(() => {
+      checkForUpdates();
+    }, 6 * 60 * 60 * 1000);
+
     checkForUpdates();
+
+    return () => {
+      window.clearTimeout(retryTimeout);
+      window.clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -92,7 +104,7 @@ export const UpdateNotification: React.FC = () => {
 
         {updateInfo.body && (
           <a
-            href={`https://github.com/DasCanard/radioss/releases/tag/v${updateInfo.version}`}
+            href={`https://github.com/DasCanard/radioss/releases/tag/${updateInfo.version}`}
             target="_blank"
             rel="noopener noreferrer"
             className="release-notes-btn"
