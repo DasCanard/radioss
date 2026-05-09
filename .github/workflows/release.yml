@@ -15,8 +15,6 @@ jobs:
         include:
           - platform: macos-latest
             args: --mac dmg --arm64
-          - platform: macos-latest
-            args: --mac dmg --x64
           - platform: ubuntu-22.04
             args: --linux AppImage deb rpm --x64
           - platform: windows-latest
