@@ -1,6 +1,6 @@
 # Radioss 📻
 
-A modern, cross-platform internet radio player built with Tauri, React, and TypeScript.
+A modern, cross-platform internet radio player built with Electron, React, and TypeScript.
 
 ![radios0 2 0](https://github.com/user-attachments/assets/6bd7f0ae-9420-4d29-9438-914312f7365d)
 
@@ -43,8 +43,7 @@ winget install DasCanard.Radioss
 
 #### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Rust](https://rustup.rs/) (for Tauri)
+- [Node.js](https://nodejs.org/) 24 LTS
 - [Git](https://git-scm.com/)
 
 #### Build Steps
@@ -58,10 +57,10 @@ cd radioss
 npm install
 
 # Start development version
-npm run tauri dev
+npm run dev
 
 # Build production version
-npm run tauri build
+npm run dist
 ```
 
 ## 🎮 Usage
@@ -89,24 +88,30 @@ npm run tauri build
 ### Development Server
 
 ```bash
-# Frontend + Backend together
-npm run tauri dev
+# Electron app
+npm run dev
 
 # Frontend only (for UI development)
-npm run dev
+npm run web:dev
 ```
 
 ### Build Commands
 
 ```bash
 # Development version
-npm run tauri dev
+npm run dev
 
 # Build production version
-npm run tauri build
+npm run dist
 
-# Compile frontend
+# Compile Electron app
 npm run build
+
+# Type-check everything
+npm run typecheck
+
+# Run tests
+npm test
 
 # Preview compiled version
 npm run preview

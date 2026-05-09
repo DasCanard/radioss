@@ -645,7 +645,7 @@ function App() {
       <header className="app-header">
         <div className="header-brand" onClick={handleHomeClick}>
           <div className="logo-wrapper">
-            <img src="/favicon.svg" alt="Radioss Logo" className="logo-icon" />
+            <img src="./favicon.svg" alt="Radioss Logo" className="logo-icon" />
           </div>
           <h1>Radioss</h1>
         </div>
