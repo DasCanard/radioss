@@ -20,6 +20,7 @@ publish:
   - provider: github
     owner: DasCanard
     repo: radioss
+    tagNamePrefix: ''
 
 mac:
   target:
@@ -46,5 +47,6 @@ linux:
   maintainer: richy
 
 nsis:
+  artifactName: ${productName}-Setup-${version}.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true

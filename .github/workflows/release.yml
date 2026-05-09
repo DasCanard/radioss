@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['[0-9]*']
   workflow_dispatch:
 
 jobs:
@@ -42,3 +42,135 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload Electron artifacts for legacy updater
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-release-${{ matrix.platform }}
+          path: |
+            release/*
+            !release/*-unpacked/**
+            !release/win-unpacked/**
+            !release/mac/**
+            !release/linux-unpacked/**
+            !release/__msi-*/**
+            !release/builder-debug.yml
+            !release/builder-effective-config.yaml
+
+  legacy-tauri-update:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+            TAG="${VERSION}"
+          fi
+
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: electron-release-*
+          path: assets
+          merge-multiple: true
+
+      - name: Sign Electron artifacts for legacy Tauri updater
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is required to publish legacy Tauri updates."
+            exit 1
+          fi
+
+          find assets -name '*.sig' -delete
+
+          node scripts/generate-legacy-tauri-latest.mjs --assets-dir assets --print-assets | while IFS= read -r asset; do
+            echo "Signing ${asset}"
+            npx -y @tauri-apps/cli@2 signer sign "${asset}"
+          done
+
+      - id: github-release
+        name: Resolve GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.TAG }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          REPO: ${{ github.repository }}
+        run: |
+          RELEASE_JSON="$(
+            gh api "repos/${REPO}/releases" --paginate |
+              jq -s -c --arg tag "$TAG" --arg version "$VERSION" '
+                [.[][] | select(
+                  .tag_name == $tag or
+                  .tag_name == $version or
+                  .tag_name == ("v" + $version) or
+                  .name == $tag or
+                  .name == $version or
+                  .name == ("Radioss " + $version) or
+                  .name == ("radioss " + $version)
+                )] | first // empty
+              '
+          )"
+
+          if [[ -z "$RELEASE_JSON" ]]; then
+            echo "Could not find a GitHub release or draft for ${TAG}."
+            exit 1
+          fi
+
+          echo "id=$(jq -r '.id' <<< "$RELEASE_JSON")" >> "$GITHUB_OUTPUT"
+          echo "tag=$(jq -r '.tag_name' <<< "$RELEASE_JSON")" >> "$GITHUB_OUTPUT"
+
+      - name: Generate legacy Tauri latest.json
+        run: |
+          node scripts/generate-legacy-tauri-latest.mjs \
+            --assets-dir assets \
+            --version "${{ steps.version.outputs.VERSION }}" \
+            --tag "${{ steps.github-release.outputs.tag }}" \
+            --repo DasCanard/radioss \
+            --output latest.json
+
+      - name: Upload legacy Tauri update assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.github-release.outputs.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          files=(latest.json assets/*.sig)
+          for file in "${files[@]}"; do
+            asset_name="$(basename "$file")"
+            existing_asset_ids="$(
+              gh api "repos/${REPO}/releases/${RELEASE_ID}/assets" \
+                --jq ".[] | select(.name == \"${asset_name}\") | .id"
+            )"
+
+            for asset_id in $existing_asset_ids; do
+              gh api --method DELETE "repos/${REPO}/releases/assets/${asset_id}"
+            done
+
+            encoded_name="$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$asset_name")"
+            curl --fail-with-body --retry 3 --retry-delay 2 --retry-all-errors \
+              -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${file}" \
+              "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=${encoded_name}" \
+              > /dev/null
+          done

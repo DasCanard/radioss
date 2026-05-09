@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish to AUR (e.g., v0.9.0)'
+        description: 'Version to publish to AUR (e.g., 0.9.0)'
         required: true
         type: string
 
@@ -24,7 +24,7 @@ jobs:
         id: get-latest-release
         run: |
           TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq '.tag_name')
-          VERSION=${TAG#v}
+          VERSION=${TAG}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
@@ -35,7 +35,7 @@ jobs:
         id: set-version
         run: |
           TAG="${{ github.event.inputs.version }}"
-          VERSION=${TAG#v}
+          VERSION=${TAG}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
