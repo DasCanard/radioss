@@ -27,7 +27,7 @@ mac:
     - target: dmg
       arch:
         - arm64
-  identity: null
+  identity: '-'
   icon: icons/icon.icns
   category: public.app-category.music
 
