@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { BrowserWindow, shell } from './electron';
+import { app, BrowserWindow, shell } from './electron';
 import { getIconPath } from './paths';
 
 export type MainWindow = BrowserWindow | null;
@@ -58,6 +58,12 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     if (windowState.minimizeToTrayEnabled && !windowState.isQuitting) {
       event.preventDefault();
       mainWindow.hide();
+      return;
+    }
+
+    if (!windowState.isQuitting) {
+      event.preventDefault();
+      app.quit();
     }
   });
 

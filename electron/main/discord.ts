@@ -9,6 +9,7 @@ const clientId = '1376904142412316812';
 export class DiscordRPCManager {
   private client: DiscordClient | null = null;
   private connectPromise: Promise<void> | null = null;
+  private disconnectPromise: Promise<void> | null = null;
   private startTimestamp: Date | null = null;
 
   async connect(): Promise<void> {
@@ -71,12 +72,44 @@ export class DiscordRPCManager {
   }
 
   async disconnect(): Promise<void> {
-    if (this.client) {
-      this.client.destroy();
+    if (this.disconnectPromise) {
+      await this.disconnectPromise;
+      return;
     }
+
+    this.disconnectPromise = this.disconnectClient();
+
+    try {
+      await this.disconnectPromise;
+    } finally {
+      this.disconnectPromise = null;
+    }
+  }
+
+  private async disconnectClient(): Promise<void> {
+    const client = this.client;
 
     this.client = null;
     this.connectPromise = null;
     this.startTimestamp = null;
+
+    if (!client) {
+      return;
+    }
+
+    try {
+      await withTimeout(client.clearActivity(), 1_500);
+    } finally {
+      client.destroy();
+    }
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | void> {
+  return Promise.race([
+    promise,
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, timeoutMs);
+    })
+  ]);
 }

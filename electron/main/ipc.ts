@@ -8,6 +8,10 @@ import { setTrayEnabled } from './tray';
 const discord = new DiscordRPCManager();
 let lastDiscordWarningAt = 0;
 
+export async function shutdownDiscordRPC(): Promise<void> {
+  await runOptionalDiscordAction(() => discord.disconnect());
+}
+
 export function registerIpcHandlers(): void {
   const storage = createJsonStorage(app.getPath('userData'));
 

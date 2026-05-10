@@ -1,14 +1,28 @@
 import { app, BrowserWindow } from './electron';
 import { setDockIcon } from './app-icon';
-import { registerIpcHandlers } from './ipc';
+import { registerIpcHandlers, shutdownDiscordRPC } from './ipc';
 import { destroyTray } from './tray';
 import { createMainWindow, showMainWindow, windowState } from './window';
 
 app.setName('radioss');
 app.setAppUserModelId('com.dascanard.radioss');
 
+let discordShutdownComplete = false;
+
 app.on('before-quit', () => {
   windowState.isQuitting = true;
+});
+
+app.on('will-quit', (event) => {
+  if (discordShutdownComplete) {
+    return;
+  }
+
+  event.preventDefault();
+  void shutdownDiscordRPC().finally(() => {
+    discordShutdownComplete = true;
+    app.quit();
+  });
 });
 
 windowState.onWindowClosed = () => {
