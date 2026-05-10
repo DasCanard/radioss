@@ -9,6 +9,10 @@ const env = { ...process.env };
 
 delete env.ELECTRON_RUN_AS_NODE;
 
+if (process.argv.includes('--force-update-check')) {
+  env.RADIOSS_FORCE_UPDATE_CHECK = 'true';
+}
+
 const child = spawn(process.execPath, [electronViteBin, 'dev'], {
   cwd: root,
   env,

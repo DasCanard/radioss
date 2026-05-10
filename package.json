@@ -1,7 +1,7 @@
 {
   "name": "radioss",
   "private": true,
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "A modern, cross-platform internet radio player built with Electron, React, and TypeScript.",
   "author": "richy",
   "type": "module",
@@ -11,6 +11,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "dev:update": "node scripts/dev.mjs --force-update-check",
     "web:dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

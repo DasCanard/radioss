@@ -1,0 +1,4 @@
+owner: DasCanard
+repo: radioss
+provider: github
+updaterCacheDirName: radioss-updater

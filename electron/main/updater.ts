@@ -2,6 +2,9 @@ import { app } from './electron';
 import { windowState } from './window';
 
 type AutoUpdater = typeof import('electron-updater')['autoUpdater'];
+type ElectronUpdaterModule = typeof import('electron-updater') & {
+  default?: typeof import('electron-updater');
+};
 
 let autoUpdater: AutoUpdater | null = null;
 
@@ -13,7 +16,7 @@ export interface UpdateCheckResult {
 }
 
 export async function checkForUpdates(): Promise<UpdateCheckResult | null> {
-  if (!app.isPackaged) {
+  if (!isUpdateCheckEnabled()) {
     return null;
   }
 
@@ -45,9 +48,15 @@ export async function downloadAndInstallUpdate(): Promise<void> {
 
 async function getAutoUpdater(): Promise<AutoUpdater> {
   if (!autoUpdater) {
-    const updaterModule = await import('electron-updater');
-    autoUpdater = updaterModule.autoUpdater;
+    const updaterModule = (await import('electron-updater')) as ElectronUpdaterModule;
+    autoUpdater = updaterModule.autoUpdater ?? updaterModule.default?.autoUpdater ?? null;
+
+    if (!autoUpdater) {
+      throw new Error('electron-updater did not expose autoUpdater');
+    }
+
     autoUpdater.autoDownload = false;
+    autoUpdater.forceDevUpdateConfig = process.env.RADIOSS_FORCE_UPDATE_CHECK === 'true';
     autoUpdater.on('checking-for-update', () => console.info('Checking for updates...'));
     autoUpdater.on('update-available', (info) => console.info(`Update available: ${info.version}`));
     autoUpdater.on('update-not-available', (info) => console.info(`No update available: ${info.version}`));
@@ -58,4 +67,8 @@ async function getAutoUpdater(): Promise<AutoUpdater> {
   }
 
   return autoUpdater;
+}
+
+function isUpdateCheckEnabled(): boolean {
+  return app.isPackaged || process.env.RADIOSS_FORCE_UPDATE_CHECK === 'true';
 }
