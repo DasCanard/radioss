@@ -9,11 +9,9 @@ app.setAppUserModelId('com.dascanard.radioss');
 
 let discordShutdownComplete = false;
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   windowState.isQuitting = true;
-});
 
-app.on('will-quit', (event) => {
   if (discordShutdownComplete) {
     return;
   }
@@ -21,7 +19,8 @@ app.on('will-quit', (event) => {
   event.preventDefault();
   void shutdownDiscordRPC().finally(() => {
     discordShutdownComplete = true;
-    app.quit();
+    destroyTray();
+    app.exit(0);
   });
 });
 
@@ -37,6 +36,10 @@ app.whenReady().then(async () => {
   await createMainWindow();
 
   app.on('activate', () => {
+    if (windowState.isQuitting) {
+      return;
+    }
+
     if (BrowserWindow.getAllWindows().length === 0) {
       void createMainWindow();
     } else {
