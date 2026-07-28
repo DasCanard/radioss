@@ -22,7 +22,7 @@
   "dependencies": {
     "axios": "^1.16.0",
     "discord-rpc": "^4.0.1",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -36,7 +36,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "^42.0.1",
-    "electron-builder": "^26.8.1",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "typescript": "~5.6.2",
     "vite": "^6.4.2",
